@@ -23,20 +23,36 @@
 extern crate gtk;
 extern crate gdk;
 
+use std::rc::Rc;
 use gtk::prelude::*;
 use gtk::{Window, WindowType, Grid, Button};
 
 pub struct MainWindow {
-    window : Window
+    window : Window,
+    grid : Grid,
+    play_button : Button,
+    constructor_button : Button
 }
 
 impl MainWindow {
-    pub fn new() -> MainWindow {
+    pub fn new() -> Rc<MainWindow> {
         let window = Window::new(WindowType::Toplevel);
-        let instance = MainWindow{window : window};
-
+        let instance = Rc::new(MainWindow{window : window,
+            play_button : Button::new_with_label("Play"),
+            constructor_button : Button::new_with_label("Deck Constructor"),
+            grid : Grid::new()});
+        
         instance.determine_size();
         instance.init_controls();
+        
+        // attach events here
+        // TODO: move attachments into its own function
+        {
+            let instance_copy = instance.clone();
+            instance.play_button.connect_clicked(move |widget| {
+                instance_copy.on_play_clicked();
+            });
+        }
 
         instance.window.show_all();
         instance
@@ -44,6 +60,7 @@ impl MainWindow {
 
     fn on_play_clicked(&self) {
         // TODO: display interface to enter rated pool/challenge a friend/spectate
+        println!("Play button was clicked!");
     }
 
     /// Initializes the layout of the control based on dimensions
@@ -51,23 +68,13 @@ impl MainWindow {
     fn init_controls(&self) {
         self.window.set_border_width(10);
 
-        let grid = Grid::new();
-
-        let play_button = Button::new_with_label("Play");
-
-        //This doesn't quite work yet, need to understand closures more
-        //let play_clicked = move |_| {
-        //    self.on_play_clicked();
-        //};
-        //play_button.connect_clicked(play_clicked);
-        grid.attach(&play_button, 0, 0, 1, 1);
+        self.grid.attach(&self.play_button, 0, 0, 1, 1);
         
-        let constructor_button = Button::new_with_label("Deck Constructor");
-        grid.attach(&constructor_button, 1, 0, 1, 1);
+        self.grid.attach(&self.constructor_button, 1, 0, 1, 1);
         
-        grid.set_column_spacing(5);
+        self.grid.set_column_spacing(5);
 
-        self.window.add(&grid);
+        self.window.add(&self.grid);
     }
 
     /// Determines the size and location of the MainWindow based on
