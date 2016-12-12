@@ -42,6 +42,10 @@ impl MainWindow {
         instance
     }
 
+    fn on_play_clicked(&self) {
+        // TODO: display interface to enter rated pool/challenge a friend/spectate
+    }
+
     /// Initializes the layout of the control based on dimensions
     /// determined by the determine_size method.
     fn init_controls(&self) {
@@ -50,6 +54,12 @@ impl MainWindow {
         let grid = Grid::new();
 
         let play_button = Button::new_with_label("Play");
+
+        //This doesn't quite work yet, need to understand closures more
+        //let play_clicked = move |_| {
+        //    self.on_play_clicked();
+        //};
+        //play_button.connect_clicked(play_clicked);
         grid.attach(&play_button, 0, 0, 1, 1);
         
         let constructor_button = Button::new_with_label("Deck Constructor");
@@ -62,14 +72,16 @@ impl MainWindow {
 
     /// Determines the size and location of the MainWindow based on
     /// the dimensions of the default display.
-    /// TODO: fill this in
     fn determine_size(&self) {
         if let Some(scr) = gdk::Screen::get_default() {
-            let width = scr.get_width();
-            let height = scr.get_height();
+            let width = scr.get_width() as f64;
+            let height = scr.get_height() as f64;
+            
+            let new_width = (width * 0.75) as i32;
+            let new_height = (height * 0.75) as i32;
 
-            // do some fancy tricks here
-            //
+            self.window.set_default_size(new_width, new_height);
+            self.window.set_position(gtk::WindowPosition::Center);
         }
     }
 
