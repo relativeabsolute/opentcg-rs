@@ -25,6 +25,6 @@ name = "OpenTCG"
 version = "0.1.0"
 authors = ["johan"]
 
-[dependencies.gtk]
-version = "0.1.1"
-features = ["v3_10"]
+[dependencies]
+gdk = "^0"
+gtk = "^0"

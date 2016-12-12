@@ -21,12 +21,13 @@
 // SOFTWARE.
 
 extern crate gtk;
+extern crate gdk;
 
 use gtk::prelude::*;
-use gtk::{Window, WindowType};
+use gtk::{Window, WindowType, Grid, Button};
 
 pub struct MainWindow {
-    window : gtk::Window
+    window : Window
 }
 
 impl MainWindow {
@@ -34,16 +35,45 @@ impl MainWindow {
         let window = Window::new(WindowType::Toplevel);
         let instance = MainWindow{window : window};
 
+        instance.determine_size();
         instance.init_controls();
 
         instance.window.show_all();
         instance
     }
 
+    /// Initializes the layout of the control based on dimensions
+    /// determined by the determine_size method.
     fn init_controls(&self) {
-        // add stuff here
+        self.window.set_border_width(10);
+
+        let grid = Grid::new();
+
+        let play_button = Button::new_with_label("Play");
+        grid.attach(&play_button, 0, 0, 1, 1);
+        
+        let constructor_button = Button::new_with_label("Deck Constructor");
+        grid.attach(&constructor_button, 1, 0, 1, 1);
+        
+        grid.set_column_spacing(5);
+
+        self.window.add(&grid);
     }
 
+    /// Determines the size and location of the MainWindow based on
+    /// the dimensions of the default display.
+    /// TODO: fill this in
+    fn determine_size(&self) {
+        if let Some(scr) = gdk::Screen::get_default() {
+            let width = scr.get_width();
+            let height = scr.get_height();
+
+            // do some fancy tricks here
+            //
+        }
+    }
+
+    /// Exit the application when the user closes the window
     pub fn exit_on_close(&self) {
         self.window.connect_delete_event(|_, _| {
             gtk::main_quit();
