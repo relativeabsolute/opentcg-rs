@@ -27,6 +27,8 @@ use std::rc::Rc;
 use gtk::prelude::*;
 use gtk::{Window, WindowType, Grid, Button};
 
+use open_tcg::deck_editor::DeckEditor;
+
 pub struct MainWindow {
     window : Window,
     grid : Grid,
@@ -53,6 +55,12 @@ impl MainWindow {
                 instance_copy.on_play_clicked();
             });
         }
+        {
+            let instance_copy = instance.clone();
+            instance.constructor_button.connect_clicked(move |widget| {
+                instance_copy.on_constructor_clicked();
+            });
+        }
 
         instance.window.show_all();
         instance
@@ -60,7 +68,12 @@ impl MainWindow {
 
     fn on_play_clicked(&self) {
         // TODO: display interface to enter rated pool/challenge a friend/spectate
-        println!("Play button was clicked!");
+    }
+
+    fn on_constructor_clicked(&self) {
+        // TODO: display deck editor
+        // for now construct a new instance each time (should probably change later)
+        let editor = DeckEditor::new();
     }
 
     /// Initializes the layout of the control based on dimensions

@@ -22,21 +22,21 @@
 
 extern crate gtk;
 
-use open_tcg::main_window::MainWindow;
-
-mod open_tcg;
-
+use std::rc::Rc;
 use gtk::prelude::*;
 use gtk::{Window, WindowType};
 
-fn main() {
-	if gtk::init().is_err() {
-		println!("Couldn't init GTK.");
-		return;
-	}
-    
-    // this is the window that allows navigation
-    let window = MainWindow::new();
-    window.exit_on_close();
-    gtk::main();
+pub struct DeckEditor {
+    window : Window
+    // add controls here
+}
+
+impl DeckEditor {
+    pub fn new() -> Rc<DeckEditor> {
+        let window = Window::new(WindowType::Toplevel);
+        let instance = Rc::new(DeckEditor{window : window});
+
+        instance.window.show_all();
+        instance
+    }
 }

@@ -21,3 +21,4 @@
 // SOFTWARE.
 
 pub mod main_window;
+pub mod deck_editor;
