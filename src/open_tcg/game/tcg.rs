@@ -20,9 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+type CardMap = HashMap<String, CardInfo>;
+
 pub struct TCG {
-    // TODO: figure out data structure to represent card info in memory
-    // will probably be a dictionary mapping card names to CardInfos
+    cards : CardMap
 }
 
 // Note: this represents the info associated with a card common to editing and game play.
