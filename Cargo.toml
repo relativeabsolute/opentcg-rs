@@ -27,4 +27,7 @@ authors = ["johan"]
 
 [dependencies]
 gdk = "^0"
-gtk = "^0"
+
+[dependencies.gtk]
+version = "0.1.0"
+features = ["v3_16"]

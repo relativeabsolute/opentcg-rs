@@ -20,6 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod main_window;
-pub mod deck_editor;
-pub mod game;
+pub struct TCG {
+    // TODO: figure out data structure to represent card info in memory
+    // will probably be a dictionary mapping card names to CardInfos
+}
+
+// Note: this represents the info associated with a card common to editing and game play.
+// There will be a different structure representing attributes of a card in game (such as location,
+// orientation, face-up/face-down, etc.
+struct CardInfo {
+    name : String,
+    image_file : String,
+    // TODO: fill this in with card type, parameters, etc.
+}

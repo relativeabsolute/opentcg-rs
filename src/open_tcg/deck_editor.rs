@@ -24,19 +24,29 @@ extern crate gtk;
 
 use std::rc::Rc;
 use gtk::prelude::*;
-use gtk::{Window, WindowType};
+use gtk::{Window, WindowType, FlowBox, Button};
 
 pub struct DeckEditor {
-    window : Window
-    // add controls here
+    window : Window,
+    layout : FlowBox
+    // TODO: add controls here
 }
 
 impl DeckEditor {
     pub fn new() -> Rc<DeckEditor> {
         let window = Window::new(WindowType::Toplevel);
-        let instance = Rc::new(DeckEditor{window : window});
+        let instance = Rc::new(DeckEditor{window : window, layout : FlowBox::new()});
+
+        instance.init_controls();
+
+        // TODO: fill in control setup and event connections
 
         instance.window.show_all();
         instance
+    }
+
+    fn init_controls(&self) {
+        // TODO: add card inspection, deck view, and card search
+        // TODO: also auxiliary functions (import/export)
     }
 }
