@@ -41,6 +41,7 @@ fn main() {
         println!("Current directory is {}", x.display());
     }
     let tcg = TCG::new_from_file(&"yugioh.xml".to_string());
+    println!("{}", tcg);
     
     // this is the window that allows navigation
     let window = MainWindow::new();

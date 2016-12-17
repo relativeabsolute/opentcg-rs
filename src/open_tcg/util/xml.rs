@@ -20,5 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod files;
-pub mod xml;
+extern crate sxd_document;
+use self::sxd_document::dom::{ChildOfRoot, Element};
+
+pub fn read_text_from_element(element : &Element) -> String {
+    let mut result = String::new();
+    if let Some(text) = element.children()[0].text() {
+        result = text.text().trim().to_string();
+    }
+    result
+}
+
+pub fn read_num_from_element(element : &Element) -> u32 {
+    let mut result = 0;
+    if let Some(text) = element.children()[0].text() {
+        result = text.text().to_string()
+            .parse().expect("Number must be a nonnegative integer.");
+    }
+    result
+}

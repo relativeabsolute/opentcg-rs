@@ -20,29 +20,122 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+extern crate sxd_document;
+
 use std::collections::HashMap;
 
-use open_tcg::util::files;
+use open_tcg::game::deck::DeckSectionInfo;
+use open_tcg::util::{files, xml};
+
+use self::sxd_document::QName;
+use self::sxd_document::dom::Element;
+use std::fmt;
 
 type CardMap = HashMap<String, CardInfo>;
+type DeckSections = Vec<DeckSectionInfo>;
 
 pub struct TCG {
     name : String,
+
+    // TCGs generally impose a limit on the number of copies
+    // of a card that can be in a deck
+    card_limit : u32,
+
+    // filename to read card info from
+    set_file : String,
+
+    sections : DeckSections,
+
     cards : CardMap
+}
+
+impl fmt::Display for TCG {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl TCG {
     pub fn new() -> TCG {
-        TCG{cards : HashMap::new(), name : String::new()}
+        TCG{cards : HashMap::new(), name : String::new(),
+            card_limit : 0, set_file : String::new(),
+            sections : Vec::new()}
+    }
+
+    fn read_deck(deck_element : &Element) -> DeckSections {
+        let mut sections = Vec::new();
+
+        let section_name = QName::new("Section");
+        let name_name = QName::new("Name");
+        let group_name = QName::new("Group");
+        let min_name = QName::new("MinSize");
+        let max_name = QName::new("MaxSize");
+
+        for e in deck_element.children() {
+            if let Some(element) = e.element() {
+                if element.name() == section_name {
+                    let mut section = DeckSectionInfo::new();
+                    for section_info in element.children() {
+                        if let Some(section_element) = section_info.element() {
+                            let element_name = section_element.name();
+                            if element_name == name_name {
+                                section.name = xml::read_text_from_element(&section_element);
+                            } else if element_name == group_name {
+                                section.group = xml::read_num_from_element(&section_element);
+                            } else if element_name == min_name {
+                                section.min_size = xml::read_num_from_element(&section_element);
+                            } else if element_name == max_name {
+                                section.max_size = xml::read_num_from_element(&section_element);
+                            }
+                        }
+                    }
+                    sections.push(section);
+                }
+            }
+        }
+
+        sections
     }
 
     pub fn new_from_file(filename : &String) -> TCG {
-        let instance = TCG::new();
+        let mut instance = TCG::new();
 
         let pkg = files::document_from_file(filename);
         let doc = pkg.as_document();
         let root = doc.root();
         let children = root.children();
+
+        let name_name = QName::new("Name");
+        let card_limit_name = QName::new("CardLimit");
+        let sets_name = QName::new("SetFile");
+        let deck_name = QName::new("Deck");
+
+        if let Some(tcg_root) = children[0].element() {
+            if tcg_root.name() == QName::new("TCG") {
+                for e in tcg_root.children() {
+                    if let Some(element) = e.element() {
+                        let element_name = element.name();
+                        if element_name == name_name {
+                            //println!("{:?}", element.children());
+                            if let Some(nameText) = element.children()[0].text() {
+                                instance.name = nameText.text().trim().to_string();
+                            }
+                        } else if element_name == card_limit_name {
+                            if let Some(limit_text) = element.children()[0].text() {
+                                instance.card_limit = limit_text.text().to_string()
+                                    .parse().expect("Card limit must be a positive integer.");
+                            }
+                        } else if element_name == sets_name {
+                            if let Some(sets) = element.children()[0].text() {
+                                instance.set_file = sets.text().trim().to_string();
+                            }
+                        } else if element_name == deck_name {
+                            instance.sections = TCG::read_deck(&element);
+                        }
+                    }
+                }
+            }
+        }
         // TODO: more stuff here...
 
         instance

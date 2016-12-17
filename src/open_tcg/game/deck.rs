@@ -20,5 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod files;
-pub mod xml;
+/// This structure defines an abstraction of the information
+/// associated with a subsection of a deck, such as main, side, etc.
+pub struct DeckSectionInfo {
+    pub name : String,
+    pub group : u32,
+
+    /// Defines the minimum number of cards in this section of the deck
+    pub min_size : u32,
+
+    /// Defines the maximum number of cards in this section of the deck
+    pub max_size : u32
+}
+
+impl DeckSectionInfo {
+    pub fn new() -> DeckSectionInfo {
+        DeckSectionInfo{name : String::new(), group : 0, min_size : 0, max_size : 0}
+    }
+}

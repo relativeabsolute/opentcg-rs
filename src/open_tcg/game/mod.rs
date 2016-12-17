@@ -21,3 +21,4 @@
 // SOFTWARE.
 
 pub mod tcg;
+pub mod deck;
