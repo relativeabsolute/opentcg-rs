@@ -22,17 +22,46 @@
 
 use std::collections::HashMap;
 
+use open_tcg::util::files;
+
 type CardMap = HashMap<String, CardInfo>;
 
 pub struct TCG {
+    name : String,
     cards : CardMap
+}
+
+impl TCG {
+    pub fn new() -> TCG {
+        TCG{cards : HashMap::new(), name : String::new()}
+    }
+
+    pub fn new_from_file(filename : &String) -> TCG {
+        let instance = TCG::new();
+
+        let pkg = files::document_from_file(filename);
+        let doc = pkg.as_document();
+        let root = doc.root();
+        let children = root.children();
+        // TODO: more stuff here...
+
+        instance
+    }
 }
 
 // Note: this represents the info associated with a card common to editing and game play.
 // There will be a different structure representing attributes of a card in game (such as location,
-// orientation, face-up/face-down, etc.
+// orientation, face-up/face-down, etc.)
 struct CardInfo {
     name : String,
     image_file : String,
     // TODO: fill this in with card type, parameters, etc.
+    
+}
+
+impl CardInfo {
+    fn new() -> CardInfo {
+        CardInfo{name : String::new(), image_file : String::new()}
+    }
+
 }

@@ -28,6 +28,7 @@ use gtk::prelude::*;
 use gtk::{Window, WindowType, Grid, Button};
 
 use open_tcg::deck_editor::DeckEditor;
+use open_tcg::game::tcg::TCG;
 
 pub struct MainWindow {
     window : Window,
@@ -61,6 +62,7 @@ impl MainWindow {
                 instance_copy.on_constructor_clicked();
             });
         }
+
 
         instance.window.show_all();
         instance

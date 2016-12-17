@@ -23,17 +23,24 @@
 extern crate gtk;
 
 use open_tcg::main_window::MainWindow;
+use open_tcg::game::tcg::TCG;
 
 mod open_tcg;
 
 use gtk::prelude::*;
 use gtk::{Window, WindowType};
+use std::env;
 
 fn main() {
 	if gtk::init().is_err() {
 		println!("Couldn't init GTK.");
 		return;
 	}
+    
+    if let Ok(x) = env::current_dir() {
+        println!("Current directory is {}", x.display());
+    }
+    let tcg = TCG::new_from_file(&"yugioh.xml".to_string());
     
     // this is the window that allows navigation
     let window = MainWindow::new();

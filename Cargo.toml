@@ -27,6 +27,7 @@ authors = ["johan"]
 
 [dependencies]
 gdk = "^0"
+sxd-document = "0.2.0"
 
 [dependencies.gtk]
 version = "0.1.0"

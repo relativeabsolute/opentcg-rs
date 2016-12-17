@@ -20,7 +20,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod main_window;
-pub mod deck_editor;
-pub mod game;
-pub mod util;
+extern crate sxd_document;
+
+use self::sxd_document::parser;
+use self::sxd_document::Package;
+
+use std::io::prelude::*;
+use std::fs::File;
+
+pub fn document_from_file(filename : &String) -> Package {
+    // TODO: add better/more specific error handling here
+    let mut s = String::new();
+    let mut f = File::open(filename).expect("Error reading file");
+    f.read_to_string(&mut s).expect("Error reading file");
+ 
+    parser::parse(&s).expect("error parsing file")
+}
