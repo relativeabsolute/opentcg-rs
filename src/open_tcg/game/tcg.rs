@@ -25,6 +25,7 @@ extern crate sxd_document;
 use std::collections::HashMap;
 
 use open_tcg::game::deck::DeckSectionInfo;
+use open_tcg::game::card::{CardInfo, CardType};
 use open_tcg::util::{files, xml};
 
 use self::sxd_document::QName;
@@ -33,6 +34,7 @@ use std::fmt;
 
 type CardMap = HashMap<String, CardInfo>;
 type DeckSections = Vec<DeckSectionInfo>;
+type CardTypes = HashMap<String, CardType>;
 
 pub struct TCG {
     name : String,
@@ -46,7 +48,9 @@ pub struct TCG {
 
     sections : DeckSections,
 
-    cards : CardMap
+    cards : CardMap,
+
+    card_types : CardTypes
 }
 
 impl fmt::Display for TCG {
@@ -59,7 +63,15 @@ impl TCG {
     pub fn new() -> TCG {
         TCG{cards : HashMap::new(), name : String::new(),
             card_limit : 0, set_file : String::new(),
-            sections : Vec::new()}
+            sections : Vec::new(), card_types : HashMap::new()}
+    }
+
+    fn read_card_types(directory : &String) -> CardTypes {
+        let mut result = HashMap::new();
+
+
+
+        result
     }
 
     fn read_deck(deck_element : &Element) -> DeckSections {
@@ -109,6 +121,7 @@ impl TCG {
         let card_limit_name = QName::new("CardLimit");
         let sets_name = QName::new("SetFile");
         let deck_name = QName::new("Deck");
+        let types_name = QName::new("TypeDirectory");
 
         if let Some(tcg_root) = children[0].element() {
             if tcg_root.name() == QName::new("TCG") {
@@ -116,19 +129,15 @@ impl TCG {
                     if let Some(element) = e.element() {
                         let element_name = element.name();
                         if element_name == name_name {
-                            //println!("{:?}", element.children());
-                            if let Some(nameText) = element.children()[0].text() {
-                                instance.name = nameText.text().trim().to_string();
-                            }
+                            instance.name = xml::read_text_from_element(&element);
                         } else if element_name == card_limit_name {
-                            if let Some(limit_text) = element.children()[0].text() {
-                                instance.card_limit = limit_text.text().to_string()
-                                    .parse().expect("Card limit must be a positive integer.");
-                            }
+                            instance.card_limit = xml::read_num_from_element(&element);
                         } else if element_name == sets_name {
-                            if let Some(sets) = element.children()[0].text() {
-                                instance.set_file = sets.text().trim().to_string();
-                            }
+                            instance.set_file = xml::read_text_from_element(&element);
+                        } else if element_name == types_name {
+                            let type_dir = xml::read_text_from_element(&element);
+                            // TODO: do error checking for empty value
+                            instance.card_types = TCG::read_card_types(&type_dir);
                         } else if element_name == deck_name {
                             instance.sections = TCG::read_deck(&element);
                         }
@@ -142,19 +151,4 @@ impl TCG {
     }
 }
 
-// Note: this represents the info associated with a card common to editing and game play.
-// There will be a different structure representing attributes of a card in game (such as location,
-// orientation, face-up/face-down, etc.)
-struct CardInfo {
-    name : String,
-    image_file : String,
-    // TODO: fill this in with card type, parameters, etc.
-    
-}
 
-impl CardInfo {
-    fn new() -> CardInfo {
-        CardInfo{name : String::new(), image_file : String::new()}
-    }
-
-}

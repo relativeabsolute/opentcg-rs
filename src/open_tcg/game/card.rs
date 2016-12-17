@@ -20,6 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod tcg;
-pub mod deck;
-pub mod card;
+
+
+// Note: this represents the info associated with a card common to editing and game play.
+// There will be a different structure representing attributes of a card in game (such as location,
+// orientation, face-up/face-down, etc.)
+pub struct CardInfo {
+    name : String,
+    image_file : String,
+    // TODO: fill this in with card type, parameters, etc.
+    
+}
+
+impl CardInfo {
+    pub fn new() -> CardInfo {
+        CardInfo{name : String::new(), image_file : String::new()}
+    }
+
+}
+
+pub struct CardType {
+    name : String
+}
