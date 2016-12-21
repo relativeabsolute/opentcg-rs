@@ -23,6 +23,9 @@
 extern crate sxd_document;
 
 use std::collections::HashMap;
+use std::fs;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
 use open_tcg::game::deck::DeckSectionInfo;
 use open_tcg::game::card::{CardInfo, CardType};
@@ -36,6 +39,7 @@ type CardMap = HashMap<String, CardInfo>;
 type DeckSections = Vec<DeckSectionInfo>;
 type CardTypes = HashMap<String, CardType>;
 
+#[derive(Debug)]
 pub struct TCG {
     name : String,
 
@@ -53,12 +57,6 @@ pub struct TCG {
     card_types : CardTypes
 }
 
-impl fmt::Display for TCG {
-    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
 impl TCG {
     pub fn new() -> TCG {
         TCG{cards : HashMap::new(), name : String::new(),
@@ -66,10 +64,19 @@ impl TCG {
             sections : Vec::new(), card_types : HashMap::new()}
     }
 
-    fn read_card_types(directory : &String) -> CardTypes {
+    fn read_card_types(directory : &PathBuf) -> CardTypes {
         let mut result = HashMap::new();
 
-
+        let path = Path::new(directory);
+        if path.exists() {
+            for entry in fs::read_dir(path).expect("Error reading directory") {
+                println!("Reading card types");
+                let entry = entry.expect("Error reading directory entry");
+                let card_type = CardType::new_from_file(&entry.path());
+                let name = card_type.name.clone();
+                result.insert(name, card_type);
+            }
+        }
 
         result
     }
@@ -109,7 +116,7 @@ impl TCG {
         sections
     }
 
-    pub fn new_from_file(filename : &String) -> TCG {
+    pub fn new_from_file(filename : &PathBuf) -> TCG {
         let mut instance = TCG::new();
 
         let pkg = files::document_from_file(filename);
@@ -136,8 +143,7 @@ impl TCG {
                             instance.set_file = xml::read_text_from_element(&element);
                         } else if element_name == types_name {
                             let type_dir = xml::read_text_from_element(&element);
-                            // TODO: do error checking for empty value
-                            instance.card_types = TCG::read_card_types(&type_dir);
+                            instance.card_types = TCG::read_card_types(&PathBuf::from(&type_dir));
                         } else if element_name == deck_name {
                             instance.sections = TCG::read_deck(&element);
                         }

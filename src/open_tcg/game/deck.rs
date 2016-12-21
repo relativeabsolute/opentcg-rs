@@ -22,6 +22,7 @@
 
 /// This structure defines an abstraction of the information
 /// associated with a subsection of a deck, such as main, side, etc.
+#[derive(Debug)]
 pub struct DeckSectionInfo {
     pub name : String,
     pub group : u32,

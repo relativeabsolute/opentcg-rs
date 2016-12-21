@@ -27,8 +27,9 @@ use self::sxd_document::Package;
 
 use std::io::prelude::*;
 use std::fs::File;
+use std::path::PathBuf;
 
-pub fn document_from_file(filename : &String) -> Package {
+pub fn document_from_file(filename : &PathBuf) -> Package {
     // TODO: add better/more specific error handling here
     let mut s = String::new();
     let mut f = File::open(filename).expect("Error reading file");

@@ -30,6 +30,7 @@ mod open_tcg;
 use gtk::prelude::*;
 use gtk::{Window, WindowType};
 use std::env;
+use std::path::PathBuf;
 
 fn main() {
 	if gtk::init().is_err() {
@@ -40,8 +41,9 @@ fn main() {
     if let Ok(x) = env::current_dir() {
         println!("Current directory is {}", x.display());
     }
-    let tcg = TCG::new_from_file(&"yugioh.xml".to_string());
-    println!("{}", tcg);
+    let path = PathBuf::from("yugioh.xml");
+    let tcg = TCG::new_from_file(&path);
+    println!("{:?}", tcg);
     
     // this is the window that allows navigation
     let window = MainWindow::new();

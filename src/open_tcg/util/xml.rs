@@ -34,7 +34,7 @@ pub fn read_text_from_element(element : &Element) -> String {
 pub fn read_num_from_element(element : &Element) -> u32 {
     let mut result = 0;
     if let Some(text) = element.children()[0].text() {
-        result = text.text().to_string()
+        result = text.text().trim().to_string()
             .parse().expect("Number must be a nonnegative integer.");
     }
     result
