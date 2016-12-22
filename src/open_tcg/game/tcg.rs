@@ -81,6 +81,32 @@ impl TCG {
         result
     }
 
+    fn read_set(set_name : &String, cards : &mut CardMap) {
+        let path_buf = PathBuf::from(set_name);
+        let path = Path::new(&path_buf);
+
+        if path.exists() {
+            for entry in fs::read_dir(path).expect("Error reading directory") {
+                let entry = entry.expect("Error reading directory entry");
+                let card = CardInfo::new_from_file(&entry.path());
+                let name = card.name.clone();
+                cards.insert(name, card);
+            }
+        }
+    }
+
+    fn read_cards(set_file : &PathBuf) -> CardMap {
+        let mut result = HashMap::new();
+
+        for line in files::lines_from_file(set_file) {
+            let line = line.expect("Error reading line from file");
+            println!("{}", line);
+            TCG::read_set(&line.trim().to_string(), &mut result);
+        }
+
+        result
+    }
+
     fn read_deck(deck_element : &Element) -> DeckSections {
         let mut sections = Vec::new();
 
@@ -141,6 +167,7 @@ impl TCG {
                             instance.card_limit = xml::read_num_from_element(&element);
                         } else if element_name == sets_name {
                             instance.set_file = xml::read_text_from_element(&element);
+                            instance.cards = TCG::read_cards(&PathBuf::from(&instance.set_file));
                         } else if element_name == types_name {
                             let type_dir = xml::read_text_from_element(&element);
                             instance.card_types = TCG::read_card_types(&PathBuf::from(&type_dir));

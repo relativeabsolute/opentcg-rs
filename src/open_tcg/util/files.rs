@@ -25,9 +25,17 @@ extern crate sxd_document;
 use self::sxd_document::parser;
 use self::sxd_document::Package;
 
+use std::io::{self, BufReader, Lines};
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
+
+pub fn lines_from_file(filename : &PathBuf) -> Lines<BufReader<File>> {
+    let f = File::open(filename).expect("Error reading file");
+    let reader = BufReader::new(f);
+
+    reader.lines()
+}
 
 pub fn document_from_file(filename : &PathBuf) -> Package {
     // TODO: add better/more specific error handling here

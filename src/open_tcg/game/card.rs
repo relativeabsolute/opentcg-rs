@@ -22,6 +22,7 @@
 
 extern crate sxd_document;
 
+use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -31,22 +32,56 @@ use self::sxd_document::dom::Element;
 
 use open_tcg::util::{files, xml};
 
+type ParamValues = HashMap<String, i32>;
+
 // Note: this represents the info associated with a card common to editing and game play.
 // There will be a different structure representing attributes of a card in game (such as location,
 // orientation, face-up/face-down, etc.)
 #[derive(Debug)]
 pub struct CardInfo {
-    name : String,
-    image_file : String,
+    pub name : String,
+    pub card_type : CardType,
+    pub param_values : ParamValues,
+    pub set_name : String,
+    pub set_code : String
     // TODO: fill this in with card type, parameters, etc.
     
 }
 
 impl CardInfo {
     pub fn new() -> CardInfo {
-        CardInfo{name : String::new(), image_file : String::new()}
+        CardInfo{name : String::new(), card_type : CardType::new(), param_values : HashMap::new(),
+            set_name : String::new(), set_code : String::new()}
     }
 
+    pub fn new_from_file(filename : &PathBuf) -> CardInfo {
+        let mut result = CardInfo::new();
+
+        let pkg = files::document_from_file(filename);
+        let doc = pkg.as_document();
+        let children = doc.root().children();
+
+        let name_name = QName::new("Name");
+        let set_code_name = QName::new("SetCode");
+        let set_name_name = QName::new("SetName");
+
+        if let Some(card_root) = children[0].element() {
+            for e in card_root.children() {
+                if let Some(element) = e.element() {
+                    let element_name = element.name();
+                    if element_name == name_name {
+                        result.name = xml::read_text_from_element(&element);
+                    } else if element_name == set_code_name {
+                        result.set_code = xml::read_text_from_element(&element);
+                    } else if element_name == set_name_name {
+                        result.set_name = xml::read_text_from_element(&element);
+                    }
+                }
+            }
+        }
+
+        result
+    }
 }
 
 #[derive(Debug)]
