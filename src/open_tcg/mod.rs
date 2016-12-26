@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod main_window;
-pub mod deck_editor;
+pub mod gui;
 pub mod game;
 pub mod util;

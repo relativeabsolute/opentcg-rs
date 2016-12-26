@@ -22,22 +22,43 @@
 
 extern crate gtk;
 
-use open_tcg::gui::main_window::MainWindow;
-use open_tcg::game::tcg::TCG;
-
-mod open_tcg;
-
+use std::rc::Rc;
 use gtk::prelude::*;
-use gtk::{Window, WindowType};
+use gtk::{Window, WindowType, FlowBox, Button, Orientation};
 
-fn main() {
-	if gtk::init().is_err() {
-		println!("Couldn't init GTK.");
-		return;
-	}
-    
-    // this is the window that allows navigation
-    let window = MainWindow::new();
-    window.exit_on_close();
-    gtk::main();
+use open_tcg::game::tcg::TCG;
+use super::card_display::CardDisplay;
+
+pub struct DeckEditor {
+    window : Window,
+    layout : FlowBox,
+    card_display : CardDisplay,
+    // TODO: add controls here
+    current_tcg : Rc<TCG>
+}
+
+impl DeckEditor {
+    pub fn new(tcg : Rc<TCG>) -> Rc<DeckEditor> {
+        let window = Window::new(WindowType::Toplevel);
+        let instance = Rc::new(DeckEditor{window : window, layout : FlowBox::new(),
+            card_display : CardDisplay::new(), current_tcg : tcg});
+
+        instance.init_controls();
+
+        // TODO: fill in control setup and event connections
+
+        instance.window.show_all();
+        instance
+    }
+
+    fn init_controls(&self) {
+        // TODO: add card inspection, deck view, and card search
+        // TODO: also auxiliary functions (import/export)
+        self.layout.set_orientation(Orientation::Horizontal);
+
+        // add card display, deck section views, and card search
+        self.layout.insert(&self.card_display.frame, -1);
+
+        self.window.add(&self.layout);
+    }
 }

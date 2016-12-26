@@ -19,25 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
-extern crate gtk;
-
-use open_tcg::gui::main_window::MainWindow;
-use open_tcg::game::tcg::TCG;
-
-mod open_tcg;
-
-use gtk::prelude::*;
-use gtk::{Window, WindowType};
-
-fn main() {
-	if gtk::init().is_err() {
-		println!("Couldn't init GTK.");
-		return;
-	}
-    
-    // this is the window that allows navigation
-    let window = MainWindow::new();
-    window.exit_on_close();
-    gtk::main();
-}
+pub mod main_window;
+pub mod deck_editor;
+pub mod card_display;

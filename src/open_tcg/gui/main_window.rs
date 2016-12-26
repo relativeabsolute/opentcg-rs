@@ -24,26 +24,31 @@ extern crate gtk;
 extern crate gdk;
 
 use std::rc::Rc;
+use std::path::PathBuf;
+
 use gtk::prelude::*;
 use gtk::{Window, WindowType, Grid, Button};
 
-use open_tcg::deck_editor::DeckEditor;
+use open_tcg::gui::deck_editor::DeckEditor;
 use open_tcg::game::tcg::TCG;
 
 pub struct MainWindow {
     window : Window,
     grid : Grid,
     play_button : Button,
-    constructor_button : Button
+    constructor_button : Button,
+    current_tcg : Rc<TCG>
 }
 
 impl MainWindow {
     pub fn new() -> Rc<MainWindow> {
+        // TODO: read settings from file for default TCGs directory
+        let path = PathBuf::from("example.xml");
         let window = Window::new(WindowType::Toplevel);
         let instance = Rc::new(MainWindow{window : window,
             play_button : Button::new_with_label("Play"),
             constructor_button : Button::new_with_label("Deck Constructor"),
-            grid : Grid::new()});
+            grid : Grid::new(), current_tcg : Rc::new(TCG::new_from_file(&path))});
         
         instance.determine_size();
         instance.init_controls();
@@ -75,7 +80,7 @@ impl MainWindow {
     fn on_constructor_clicked(&self) {
         // TODO: display deck editor
         // for now construct a new instance each time (should probably change later)
-        let editor = DeckEditor::new();
+        let editor = DeckEditor::new(self.current_tcg.clone());
     }
 
     /// Initializes the layout of the control based on dimensions
