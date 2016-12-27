@@ -25,36 +25,41 @@ extern crate gtk;
 use std::rc::Rc;
 
 use gtk::prelude::*;
-use gtk::{Builder, Frame, Image, TextView, Label};
+use gtk::{Builder, Button, Frame, Image, TextView, Label,
+    SearchEntry, ComboBoxText};
 
 use open_tcg::game::tcg::TCG;
 
-pub struct CardDisplay {
+pub struct CardSearch {
     pub frame : Frame,
-    card_image : Image,
-    card_name_label : Label,
-    card_text_view : TextView,
+    card_name_search : SearchEntry,
+    card_text_search : SearchEntry,
+    type_choice : ComboBoxText,
     current_tcg : Rc<TCG>
 }
 
-impl CardDisplay {
-    // TODO: determine if this needs to be an Rc
-    // TODO: add card image, description, and parameters
-    pub fn new(tcg : Rc<TCG>) -> CardDisplay {
-        let glade_src = include_str!("card_display.glade");
-        let builder = Builder::new_from_string(glade_src);
+impl CardSearch {
 
-        let mut instance = CardDisplay{frame : builder.get_object("card_display").unwrap(),
-            card_name_label : builder.get_object("card_name_label").unwrap(),
-            card_text_view : builder.get_object("card_text_view").unwrap(),
-            card_image : builder.get_object("card_image").unwrap(), current_tcg : tcg};
+    pub fn new(tcg : Rc<TCG>) -> Rc<CardSearch> {
+        let instance = Rc::new(CardSearch::init_controls(tcg));
 
         instance
     }
 
-    pub fn set_card(&self, name : &String) {
-       if let Some(card) = self.current_tcg.cards.get(name) {
-           self.card_name_label.set_text(&card.name);
-       }
+    fn init_controls(tcg : Rc<TCG>) -> CardSearch {
+        let glade_src = include_str!("card_search.glade");
+        let builder = Builder::new_from_string(glade_src);
+
+        let mut instance = CardSearch{frame : builder.get_object("card_search").unwrap(),
+            current_tcg : tcg,
+            card_name_search : builder.get_object("card_name_search").unwrap(),
+            card_text_search : builder.get_object("card_text_search").unwrap(),
+            type_choice : builder.get_object("type_choice").unwrap()};
+        
+        for type_name in instance.current_tcg.card_types.keys() {
+            instance.type_choice.append(None, &type_name);
+        }
+
+        instance
     }
 }

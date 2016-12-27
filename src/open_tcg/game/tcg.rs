@@ -54,7 +54,7 @@ pub struct TCG {
 
     pub cards : CardMap,
 
-    card_types : CardTypes
+    pub card_types : CardTypes
 }
 
 impl TCG {
@@ -70,7 +70,6 @@ impl TCG {
         let path = Path::new(directory);
         if path.exists() {
             for entry in fs::read_dir(path).expect("Error reading directory") {
-                println!("Reading card types");
                 let entry = entry.expect("Error reading directory entry");
                 let card_type = CardType::new_from_file(&entry.path());
                 let name = card_type.name.clone();
@@ -100,7 +99,6 @@ impl TCG {
 
         for line in files::lines_from_file(set_file) {
             let line = line.expect("Error reading line from file");
-            println!("{}", line);
             TCG::read_set(&line.trim().to_string(), &mut result);
         }
 

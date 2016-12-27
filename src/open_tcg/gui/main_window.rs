@@ -56,18 +56,14 @@ impl MainWindow {
     }
 
     fn init_controls(tcg : Rc<TCG>) -> MainWindow {
-        let mut instance = MainWindow{window : Window::new(WindowType::Toplevel),
-            play_button : Button::new(), deck_edit_button : Button::new(),
-            view_profile_button : Button::new(), current_tcg : tcg};
-
         let glade_src = include_str!("main_window.glade");
-        println!("{}", glade_src);
         let builder = Builder::new_from_string(glade_src);
 
-        instance.window = builder.get_object("window").unwrap();
-        instance.play_button = builder.get_object("play_button").unwrap();
-        instance.deck_edit_button = builder.get_object("deck_edit_button").unwrap();
-        instance.view_profile_button = builder.get_object("view_profile_button").unwrap();
+        let mut instance = MainWindow{window : builder.get_object("window").unwrap(),
+            play_button : builder.get_object("play_button").unwrap(),
+            deck_edit_button : builder.get_object("deck_edit_button").unwrap(),
+            view_profile_button : builder.get_object("view_profile_button").unwrap(),
+            current_tcg : tcg};
 
         instance
     }

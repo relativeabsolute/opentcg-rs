@@ -23,12 +23,10 @@
 extern crate gtk;
 
 use open_tcg::gui::main_window::MainWindow;
-use open_tcg::game::tcg::TCG;
 
 mod open_tcg;
 
 use gtk::prelude::*;
-use gtk::{Window, WindowType};
 
 fn main() {
 	if gtk::init().is_err() {

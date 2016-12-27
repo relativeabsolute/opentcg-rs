@@ -24,26 +24,26 @@ extern crate gtk;
 
 use std::rc::Rc;
 use gtk::prelude::*;
-use gtk::{Window, WindowType, FlowBox, Button, Orientation};
+use gtk::{Window, WindowType, Builder, Button, Orientation};
+use gtk::Box as GtkBox;
 
 use open_tcg::game::tcg::TCG;
 use super::card_display::CardDisplay;
+use super::card_search::CardSearch;
 
 pub struct DeckEditor {
     window : Window,
-    layout : FlowBox,
+    editor_box : GtkBox,
     card_display : CardDisplay,
+    card_search : Rc<CardSearch>,
     // TODO: add controls here
     current_tcg : Rc<TCG>
 }
 
 impl DeckEditor {
     pub fn new(tcg : Rc<TCG>) -> Rc<DeckEditor> {
-        let window = Window::new(WindowType::Toplevel);
-        let instance = Rc::new(DeckEditor{window : window, layout : FlowBox::new(),
-            card_display : CardDisplay::new(tcg.clone()), current_tcg : tcg});
+        let instance = Rc::new(DeckEditor::init_controls(tcg));
 
-        instance.init_controls();
 
         // TODO: fill in control setup and event connections
 
@@ -51,14 +51,20 @@ impl DeckEditor {
         instance
     }
 
-    fn init_controls(&self) {
-        // TODO: add card inspection, deck view, and card search
-        // TODO: also auxiliary functions (import/export)
-        self.layout.set_orientation(Orientation::Horizontal);
+    fn init_controls(tcg : Rc<TCG>) -> DeckEditor {
+        let glade_src = include_str!("deck_editor.glade");
+        let builder = Builder::new_from_string(glade_src);
 
-        // add card display, deck section views, and card search
-        self.layout.insert(&self.card_display.frame, -1);
+        let mut instance = DeckEditor{window : builder.get_object("window").unwrap(),
+            card_display : CardDisplay::new(tcg.clone()), 
+            card_search : CardSearch::new(tcg.clone()),
+            current_tcg : tcg,
+            editor_box : builder.get_object("editor_box").unwrap()};
+        
+        
+        instance.editor_box.pack_start(&instance.card_display.frame, false, false, 0);
+        instance.editor_box.pack_end(&instance.card_search.frame, false, false, 0);
 
-        self.window.add(&self.layout);
+        instance
     }
 }
