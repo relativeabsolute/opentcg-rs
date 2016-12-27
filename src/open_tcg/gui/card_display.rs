@@ -22,24 +22,36 @@
 
 extern crate gtk;
 
+use std::rc::Rc;
+
 use gtk::prelude::*;
 use gtk::{Frame, FlowBox, Orientation, Label};
+
+use open_tcg::game::tcg::TCG;
 
 pub struct CardDisplay {
     pub frame : Frame,
     layout : FlowBox,
-    name_label : Label
+    name_label : Label,
+    current_tcg : Rc<TCG>
 }
 
 impl CardDisplay {
     // TODO: determine if this needs to be an Rc
-    pub fn new() -> CardDisplay {
+    // TODO: add card image, description, and parameters
+    pub fn new(tcg : Rc<TCG>) -> CardDisplay {
         let instance = CardDisplay{frame : Frame::new(None), layout : FlowBox::new(),
-            name_label : Label::new(Some("Card name here"))};
+            name_label : Label::new(Some("Card name here")), current_tcg : tcg};
 
         instance.init_controls();
 
         instance
+    }
+
+    pub fn set_card(&self, name : &String) {
+       if let Some(card) = self.current_tcg.cards.get(name) {
+           self.name_label.set_text(&card.name);
+       }
     }
 
     fn init_controls(&self) {

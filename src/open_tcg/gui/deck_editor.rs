@@ -41,7 +41,7 @@ impl DeckEditor {
     pub fn new(tcg : Rc<TCG>) -> Rc<DeckEditor> {
         let window = Window::new(WindowType::Toplevel);
         let instance = Rc::new(DeckEditor{window : window, layout : FlowBox::new(),
-            card_display : CardDisplay::new(), current_tcg : tcg});
+            card_display : CardDisplay::new(tcg.clone()), current_tcg : tcg});
 
         instance.init_controls();
 

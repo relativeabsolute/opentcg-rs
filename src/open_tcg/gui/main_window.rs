@@ -27,16 +27,16 @@ use std::rc::Rc;
 use std::path::PathBuf;
 
 use gtk::prelude::*;
-use gtk::{Window, WindowType, Grid, Button};
+use gtk::{Builder, Window, WindowType, Grid, Button};
 
 use open_tcg::gui::deck_editor::DeckEditor;
 use open_tcg::game::tcg::TCG;
 
 pub struct MainWindow {
     window : Window,
-    grid : Grid,
     play_button : Button,
-    constructor_button : Button,
+    deck_edit_button : Button,
+    view_profile_button : Button,
     current_tcg : Rc<TCG>
 }
 
@@ -44,17 +44,36 @@ impl MainWindow {
     pub fn new() -> Rc<MainWindow> {
         // TODO: read settings from file for default TCGs directory
         let path = PathBuf::from("example.xml");
-        let window = Window::new(WindowType::Toplevel);
-        let instance = Rc::new(MainWindow{window : window,
-            play_button : Button::new_with_label("Play"),
-            constructor_button : Button::new_with_label("Deck Constructor"),
-            grid : Grid::new(), current_tcg : Rc::new(TCG::new_from_file(&path))});
+        let tcg = Rc::new(TCG::new_from_file(&path));
+        let instance = Rc::new(MainWindow::init_controls(tcg));
         
         instance.determine_size();
-        instance.init_controls();
+        MainWindow::connect_events(instance.clone());
         
+
+        instance.window.show_all();
+        instance
+    }
+
+    fn init_controls(tcg : Rc<TCG>) -> MainWindow {
+        let mut instance = MainWindow{window : Window::new(WindowType::Toplevel),
+            play_button : Button::new(), deck_edit_button : Button::new(),
+            view_profile_button : Button::new(), current_tcg : tcg};
+
+        let glade_src = include_str!("main_window.glade");
+        println!("{}", glade_src);
+        let builder = Builder::new_from_string(glade_src);
+
+        instance.window = builder.get_object("window").unwrap();
+        instance.play_button = builder.get_object("play_button").unwrap();
+        instance.deck_edit_button = builder.get_object("deck_edit_button").unwrap();
+        instance.view_profile_button = builder.get_object("view_profile_button").unwrap();
+
+        instance
+    }
+
+    fn connect_events(instance : Rc<MainWindow>) {
         // attach events here
-        // TODO: move attachments into its own function
         {
             let instance_copy = instance.clone();
             instance.play_button.connect_clicked(move |widget| {
@@ -63,14 +82,20 @@ impl MainWindow {
         }
         {
             let instance_copy = instance.clone();
-            instance.constructor_button.connect_clicked(move |widget| {
+            instance.deck_edit_button.connect_clicked(move |widget| {
                 instance_copy.on_constructor_clicked();
             });
         }
+        {
+            let instance_copy = instance.clone();
+            instance.view_profile_button.connect_clicked(move |_| {
+                instance_copy.on_view_profile_clicked();
+            });
+        }
+    }
 
+    fn on_view_profile_clicked(&self) {
 
-        instance.window.show_all();
-        instance
     }
 
     fn on_play_clicked(&self) {
@@ -81,20 +106,6 @@ impl MainWindow {
         // TODO: display deck editor
         // for now construct a new instance each time (should probably change later)
         let editor = DeckEditor::new(self.current_tcg.clone());
-    }
-
-    /// Initializes the layout of the control based on dimensions
-    /// determined by the determine_size method.
-    fn init_controls(&self) {
-        self.window.set_border_width(10);
-
-        self.grid.attach(&self.play_button, 0, 0, 1, 1);
-        
-        self.grid.attach(&self.constructor_button, 1, 0, 1, 1);
-        
-        self.grid.set_column_spacing(5);
-
-        self.window.add(&self.grid);
     }
 
     /// Determines the size and location of the MainWindow based on

@@ -52,7 +52,7 @@ pub struct TCG {
 
     sections : DeckSections,
 
-    cards : CardMap,
+    pub cards : CardMap,
 
     card_types : CardTypes
 }
