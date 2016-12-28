@@ -37,7 +37,7 @@ pub struct CardSearch {
     card_text_search : SearchEntry,
     type_choice : ComboBoxText,
     search_items_box : GtkBox,
-    card_view : CardView,
+    card_view : Rc<CardView>,
     update_button : Button,
     clear_button : Button,
     current_tcg : Rc<TCG>
@@ -57,6 +57,7 @@ impl CardSearch {
         let glade_src = include_str!("card_search.glade");
         let builder = Builder::new_from_string(glade_src);
 
+        let clone = tcg.clone();
         let mut instance = CardSearch{frame : builder.get_object("card_search").unwrap(),
             current_tcg : tcg,
             card_name_search : builder.get_object("card_name_search").unwrap(),
@@ -65,7 +66,7 @@ impl CardSearch {
             search_items_box : builder.get_object("search_items_box").unwrap(),
             update_button : builder.get_object("update_button").unwrap(),
             clear_button : builder.get_object("clear_button").unwrap(),
-            card_view : CardView::new()};
+            card_view : CardView::new(clone)};
         
         instance.type_choice.append(None, "All Types");
         for type_name in instance.current_tcg.card_types.keys() {
@@ -73,7 +74,7 @@ impl CardSearch {
         }
         instance.type_choice.set_active(0);
 
-        instance.search_items_box.pack_end(&instance.card_view.view, false, false, 0);
+        instance.search_items_box.pack_end(&instance.card_view.grid, false, false, 0);
 
         instance
     }

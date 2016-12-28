@@ -27,40 +27,75 @@ extern crate gdk_pixbuf;
 use std::rc::Rc;
 
 use gtk::prelude::*;
-use gtk::{TreeView, ListStore, TreeViewColumn, CellRendererPixbuf};
+use gtk::{Grid, EventBox, Image};
 use self::gdk_pixbuf::Pixbuf;
 
+use open_tcg::game::tcg::TCG;
+use open_tcg::game::card::CardInfo;
+
+const row_count : usize = 5;
+const col_count : usize = 4;
+const num_images : row_count * col_count;
+
 pub struct CardView {
-    pub view : TreeView,
-    pub model : ListStore
+    pub grid : Grid,
+    images : Vec<Image>,
+    boxes : Vec<EventBox>,
+    current_tcg : Rc<TCG>
 }
 
 impl CardView {
-    pub fn new() -> CardView {
-        let view = TreeView::new();
+    pub fn new(tcg : Rc<TCG>) -> Rc<CardView> {
+        let instance = Rc::new(CardView::init_controls(tcg));
 
-        let pixbuf_type = Pixbuf::static_type();
 
-        // TODO: figure out how to add more columns
-        const column_count : usize = 1;
-        let mut columns = [pixbuf_type; column_count];
 
-        // TODO: finish the model for a grid of card images
+        instance
+    }
 
-        let store = ListStore::new(&columns);
+    fn init_controls(tcg : Rc<TCG>) -> CardView {
+        // the easiest way to do this seems to be to create an array of images
+        // whose tooltips are the names of their corresponding cards
+        // then we can simply set those lying past a certain index
+        // to not be visible
+        let mut result = CardView{grid : Grid::new(),
+            images : Vec::with_capacity(row_count * col_count),
+            boxes : Vec::with_capacity(row_count * col_count),
+            current_tcg : tcg};
 
-        let renderer = CellRendererPixbuf::new();
-
-        let col = TreeViewColumn::new();
-        for i in 0..column_count {
-            col.pack_start(&renderer, false);
-            col.add_attribute(&renderer, "pixbuf", i as i32);
+        for i in 0..row_count {
+            for j in 0..col_count {
+                let index = i * col_count + j;
+                let img = Image::new();
+                img.set_visible(false);
+                result.images.push(img);
+                let evt_box = EventBox::new();
+                evt_box.add(&result.images[index]);
+                result.boxes.push(evt_box);
+                result.grid.attach(&result.boxes[index], j as i32, i as i32, 1, 1);
+            }
         }
 
-        view.set_headers_visible(false);
-        view.set_model(Some(&store));
+        result
 
-        CardView{view : view, model : store}
     }
+
+    pub fn set_cards(&self, card_names : Vec<String>) {
+        let cards : Vec<&CardInfo> = card_names.iter().map(|n| self.current_tcg.cards.get(n).unwrap()).collect();
+        let cutoff = cards.len();
+        for i in 0..num_images {
+            if i < cutoff {
+                // TODO: load the corresponding image and make it visible
+            } else {
+                // TODO: make the corresponding image invisible
+            }
+        }
+    }
+
+    // TODO: display a single proxy card initially
+    // TODO: connect mouse events
+    // TODO: update images based upon collection of card names
+    // TODO: figure out the best way to have the minimal amount of images loaded at once
+    // TODO: create way to handle having more than 20 results
 }
 
