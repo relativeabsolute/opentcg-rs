@@ -19,8 +19,48 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-pub mod main_window;
-pub mod deck_editor;
-pub mod card_display;
-pub mod card_search;
-pub mod card_view;
+
+extern crate gtk;
+extern crate gdk;
+extern crate gdk_pixbuf;
+
+use std::rc::Rc;
+
+use gtk::prelude::*;
+use gtk::{TreeView, ListStore, TreeViewColumn, CellRendererPixbuf};
+use self::gdk_pixbuf::Pixbuf;
+
+pub struct CardView {
+    pub view : TreeView,
+    pub model : ListStore
+}
+
+impl CardView {
+    pub fn new() -> CardView {
+        let view = TreeView::new();
+
+        let pixbuf_type = Pixbuf::static_type();
+
+        // TODO: figure out how to add more columns
+        const column_count : usize = 1;
+        let mut columns = [pixbuf_type; column_count];
+
+        // TODO: finish the model for a grid of card images
+
+        let store = ListStore::new(&columns);
+
+        let renderer = CellRendererPixbuf::new();
+
+        let col = TreeViewColumn::new();
+        for i in 0..column_count {
+            col.pack_start(&renderer, false);
+            col.add_attribute(&renderer, "pixbuf", i as i32);
+        }
+
+        view.set_headers_visible(false);
+        view.set_model(Some(&store));
+
+        CardView{view : view, model : store}
+    }
+}
+

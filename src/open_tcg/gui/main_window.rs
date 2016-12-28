@@ -27,7 +27,7 @@ use std::rc::Rc;
 use std::path::PathBuf;
 
 use gtk::prelude::*;
-use gtk::{Builder, Window, WindowType, Grid, Button};
+use gtk::{Builder, Window, Button};
 
 use open_tcg::gui::deck_editor::DeckEditor;
 use open_tcg::game::tcg::TCG;
