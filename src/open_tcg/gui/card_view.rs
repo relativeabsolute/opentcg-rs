@@ -32,28 +32,28 @@ use self::gdk_pixbuf::Pixbuf;
 
 use open_tcg::game::tcg::TCG;
 use open_tcg::game::card::CardInfo;
+use super::image_manager::ImageManager;
 
 const row_count : usize = 5;
 const col_count : usize = 4;
-const num_images : row_count * col_count;
 
 pub struct CardView {
     pub grid : Grid,
     images : Vec<Image>,
     boxes : Vec<EventBox>,
-    current_tcg : Rc<TCG>
+    img_manager : Rc<ImageManager>
 }
 
 impl CardView {
-    pub fn new(tcg : Rc<TCG>) -> Rc<CardView> {
-        let instance = Rc::new(CardView::init_controls(tcg));
+    pub fn new(img_manager : Rc<ImageManager>) -> Rc<CardView> {
+        let instance = Rc::new(CardView::init_controls(img_manager));
 
 
 
         instance
     }
 
-    fn init_controls(tcg : Rc<TCG>) -> CardView {
+    fn init_controls(img_manager : Rc<ImageManager>) -> CardView {
         // the easiest way to do this seems to be to create an array of images
         // whose tooltips are the names of their corresponding cards
         // then we can simply set those lying past a certain index
@@ -61,7 +61,7 @@ impl CardView {
         let mut result = CardView{grid : Grid::new(),
             images : Vec::with_capacity(row_count * col_count),
             boxes : Vec::with_capacity(row_count * col_count),
-            current_tcg : tcg};
+            img_manager : img_manager};
 
         for i in 0..row_count {
             for j in 0..col_count {
@@ -80,14 +80,22 @@ impl CardView {
 
     }
 
-    pub fn set_cards(&self, card_names : Vec<String>) {
-        let cards : Vec<&CardInfo> = card_names.iter().map(|n| self.current_tcg.cards.get(n).unwrap()).collect();
+    pub fn set_cards(&self, cards : &Vec<&CardInfo>) {
+        // using CardInfos directly removes the need to keep an Rc to the current TCG
         let cutoff = cards.len();
-        for i in 0..num_images {
-            if i < cutoff {
-                // TODO: load the corresponding image and make it visible
-            } else {
-                // TODO: make the corresponding image invisible
+        for i in 0..row_count {
+            for j in 0..col_count {
+                let index = i * col_count + j;
+                if index < cutoff {
+                    // TODO: unload previously loaded images
+                    self.img_manager.load_image(&cards[index].set_code);
+                    if let Some(img) = self.img_manager.get_small_image(&cards[index].set_code) {
+                        self.images[index].set_from_pixbuf(Some(&img));
+                        self.images[index].set_visible(true);
+                    }
+                } else {
+                    self.images[index].set_visible(false);
+                }
             }
         }
     }

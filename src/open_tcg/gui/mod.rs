@@ -24,3 +24,4 @@ pub mod deck_editor;
 pub mod card_display;
 pub mod card_search;
 pub mod card_view;
+pub mod image_manager;

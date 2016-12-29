@@ -43,7 +43,7 @@ pub struct CardInfo {
     pub card_type : CardType,
     pub param_values : ParamValues,
     pub set_name : String,
-    pub set_code : String
+    pub set_code : String // this is also used as an image handle
     // TODO: fill this in with card type, parameters, etc.
     
 }

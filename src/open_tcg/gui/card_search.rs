@@ -23,13 +23,16 @@
 extern crate gtk;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 use gtk::prelude::*;
 use gtk::{Builder, Button, Frame, Image, TextView, Label,
     SearchEntry, ComboBoxText};
 use gtk::Box as GtkBox;
 use open_tcg::game::tcg::TCG;
+use open_tcg::game::card::CardInfo;
 use super::card_view::CardView;
+use super::image_manager::ImageManager;
 
 pub struct CardSearch {
     pub frame : Frame,
@@ -45,19 +48,18 @@ pub struct CardSearch {
 
 impl CardSearch {
 
-    pub fn new(tcg : Rc<TCG>) -> Rc<CardSearch> {
-        let instance = Rc::new(CardSearch::init_controls(tcg));
+    pub fn new(tcg : Rc<TCG>, img_manager : Rc<ImageManager>) -> Rc<CardSearch> {
+        let instance = Rc::new(CardSearch::init_controls(tcg, img_manager));
         
         CardSearch::connect_events(instance.clone());
 
         instance
     }
 
-    fn init_controls(tcg : Rc<TCG>) -> CardSearch {
+    fn init_controls(tcg : Rc<TCG>, img_manager : Rc<ImageManager>) -> CardSearch {
         let glade_src = include_str!("card_search.glade");
         let builder = Builder::new_from_string(glade_src);
 
-        let clone = tcg.clone();
         let mut instance = CardSearch{frame : builder.get_object("card_search").unwrap(),
             current_tcg : tcg,
             card_name_search : builder.get_object("card_name_search").unwrap(),
@@ -66,7 +68,7 @@ impl CardSearch {
             search_items_box : builder.get_object("search_items_box").unwrap(),
             update_button : builder.get_object("update_button").unwrap(),
             clear_button : builder.get_object("clear_button").unwrap(),
-            card_view : CardView::new(clone)};
+            card_view : CardView::new(img_manager)};
         
         instance.type_choice.append(None, "All Types");
         for type_name in instance.current_tcg.card_types.keys() {
@@ -97,6 +99,15 @@ impl CardSearch {
     fn on_update_clicked(&self) {
         // TODO: update grid of card_view with cards
         // meeting the current search criteria
+        let mut cards : Vec<&CardInfo> = self.current_tcg.cards.values().collect();
+        if let Some(text) = self.card_name_search.get_text() {
+            cards = cards.iter().filter(|&&c| c.name.contains(&text)).map(|c| *c).collect();
+        }
+        if let Some(text) = self.card_text_search.get_text() {
+            // TODO: add card text
+        }
+        self.card_view.set_cards(&cards);
+        // TODO: pass cards to cardview
     }
 
     fn on_clear_clicked(&self) {

@@ -23,6 +23,7 @@
 extern crate gtk;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 use gtk::prelude::*;
 use gtk::{Window, WindowType, Builder, Button, Orientation};
 use gtk::Box as GtkBox;
@@ -30,6 +31,7 @@ use gtk::Box as GtkBox;
 use open_tcg::game::tcg::TCG;
 use super::card_display::CardDisplay;
 use super::card_search::CardSearch;
+use super::image_manager::ImageManager;
 
 pub struct DeckEditor {
     window : Window,
@@ -37,7 +39,8 @@ pub struct DeckEditor {
     card_display : CardDisplay,
     card_search : Rc<CardSearch>,
     // TODO: add controls here
-    current_tcg : Rc<TCG>
+    current_tcg : Rc<TCG>,
+    img_manager : Rc<ImageManager>
 }
 
 impl DeckEditor {
@@ -55,11 +58,13 @@ impl DeckEditor {
         let glade_src = include_str!("deck_editor.glade");
         let builder = Builder::new_from_string(glade_src);
 
+        let img_manager = Rc::new(ImageManager::new());
         let mut instance = DeckEditor{window : builder.get_object("window").unwrap(),
             card_display : CardDisplay::new(tcg.clone()), 
-            card_search : CardSearch::new(tcg.clone()),
+            card_search : CardSearch::new(tcg.clone(), img_manager.clone()),
             current_tcg : tcg,
-            editor_box : builder.get_object("editor_box").unwrap()};
+            editor_box : builder.get_object("editor_box").unwrap(),
+            img_manager : img_manager};
         
         
         instance.editor_box.pack_start(&instance.card_display.frame, false, false, 0);
