@@ -25,9 +25,11 @@ extern crate gdk;
 extern crate gdk_pixbuf;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 use gtk::prelude::*;
-use gtk::{Grid, EventBox, Image};
+use gtk::{Grid, Image, EventBox, Window};
+use self::gdk::{EventButton, EventMotion};
 use self::gdk_pixbuf::Pixbuf;
 
 use open_tcg::game::tcg::TCG;
@@ -41,6 +43,7 @@ pub struct CardView {
     pub grid : Grid,
     images : Vec<Image>,
     boxes : Vec<EventBox>,
+    card_clicked_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventButton)>>>,
     img_manager : Rc<ImageManager>
 }
 
@@ -48,9 +51,52 @@ impl CardView {
     pub fn new(img_manager : Rc<ImageManager>) -> Rc<CardView> {
         let instance = Rc::new(CardView::init_controls(img_manager));
 
-
+        CardView::connect_events(instance.clone());
 
         instance
+    }
+
+    fn connect_events(instance : Rc<CardView>) {
+        for i in 0..row_count {
+            for j in 0..col_count {
+                let index = i * col_count + j;
+                {
+                    let instance_copy = instance.clone();
+                    instance.boxes[index].connect_motion_notify_event(move |_, _| {
+                        instance_copy.on_image_hover(index);
+                        Inhibit(true)
+                    });
+                }
+                {
+                    let instance_copy = instance.clone();
+                    instance.boxes[index].connect_button_press_event(move |_, evt| {
+                        instance_copy.on_image_click(index, evt);
+                        Inhibit(true)
+                    });
+                }
+            }
+        }
+    }
+
+    pub fn connect_card_clicked<F : Fn(&Self, &String, &EventButton) + 'static>(&self, f : F) {
+        self.card_clicked_events.borrow_mut().push(Box::new(f));
+    }
+
+    fn fire_card_clicked(&self, name : &String, evt : &EventButton) {
+        for f in self.card_clicked_events.borrow().iter() {
+            f(self, name, evt);
+        }
+    }
+
+    fn on_image_hover(&self, index : usize) {
+        if self.images[index].get_visible() {
+        }
+    }
+
+    fn on_image_click(&self, index : usize, evt : &EventButton) {
+        if self.images[index].get_visible() {
+            self.fire_card_clicked(&self.boxes[index].get_tooltip_text().unwrap(), evt);
+        }
     }
 
     fn init_controls(img_manager : Rc<ImageManager>) -> CardView {
@@ -58,10 +104,12 @@ impl CardView {
         // whose tooltips are the names of their corresponding cards
         // then we can simply set those lying past a certain index
         // to not be visible
+        let count = row_count * col_count;
         let mut result = CardView{grid : Grid::new(),
-            images : Vec::with_capacity(row_count * col_count),
-            boxes : Vec::with_capacity(row_count * col_count),
-            img_manager : img_manager};
+            images : Vec::with_capacity(count),
+            boxes : Vec::with_capacity(count),
+            img_manager : img_manager,
+            card_clicked_events : RefCell::new(Vec::new())};
 
         for i in 0..row_count {
             for j in 0..col_count {
@@ -70,6 +118,7 @@ impl CardView {
                 img.set_visible(false);
                 result.images.push(img);
                 let evt_box = EventBox::new();
+                evt_box.set_above_child(false);
                 evt_box.add(&result.images[index]);
                 result.boxes.push(evt_box);
                 result.grid.attach(&result.boxes[index], j as i32, i as i32, 1, 1);
@@ -80,7 +129,7 @@ impl CardView {
 
     }
 
-    pub fn set_cards(&self, cards : &Vec<&CardInfo>) {
+    pub fn set_cards(&self, cards : &Vec<CardInfo>) {
         // using CardInfos directly removes the need to keep an Rc to the current TCG
         let cutoff = cards.len();
         for i in 0..row_count {
@@ -92,6 +141,7 @@ impl CardView {
                     if let Some(img) = self.img_manager.get_small_image(&cards[index].set_code) {
                         self.images[index].set_from_pixbuf(Some(&img));
                         self.images[index].set_visible(true);
+                        self.boxes[index].set_tooltip_text(Some(&cards[index].name));
                     }
                 } else {
                     self.images[index].set_visible(false);

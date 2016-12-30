@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 extern crate gtk;
+extern crate gdk;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -28,6 +29,7 @@ use std::cell::RefCell;
 use gtk::prelude::*;
 use gtk::{Builder, Button, Frame, Image, TextView, Label,
     SearchEntry, ComboBoxText};
+use self::gdk::{EventButton, EventMotion};
 use gtk::Box as GtkBox;
 use open_tcg::game::tcg::TCG;
 use open_tcg::game::card::CardInfo;
@@ -40,10 +42,11 @@ pub struct CardSearch {
     card_text_search : SearchEntry,
     type_choice : ComboBoxText,
     search_items_box : GtkBox,
-    card_view : Rc<CardView>,
+    card_view : Rc<CardView>, 
     update_button : Button,
     clear_button : Button,
-    current_tcg : Rc<TCG>
+    current_tcg : Rc<TCG>,
+    card_clicked_events : RefCell<Vec<Box<Fn(&CardSearch, &String, &EventButton)>>>
 }
 
 impl CardSearch {
@@ -68,7 +71,8 @@ impl CardSearch {
             search_items_box : builder.get_object("search_items_box").unwrap(),
             update_button : builder.get_object("update_button").unwrap(),
             clear_button : builder.get_object("clear_button").unwrap(),
-            card_view : CardView::new(img_manager)};
+            card_view : CardView::new(img_manager),
+            card_clicked_events : RefCell::new(Vec::new())};
         
         instance.type_choice.append(None, "All Types");
         for type_name in instance.current_tcg.card_types.keys() {
@@ -94,14 +98,31 @@ impl CardSearch {
                 instance_copy.on_clear_clicked();
             });
         }
+        // propogate card clicked and hover events upward to the deck editor
+        {
+            let instance_copy = instance.clone();
+            instance.card_view.connect_card_clicked(move |_, name, evt| {
+                instance_copy.fire_card_clicked(name, evt);
+            });
+        }
+    }
+
+    pub fn connect_card_clicked<F : Fn(&Self, &String, &EventButton) + 'static>(&self, f : F) {
+        self.card_clicked_events.borrow_mut().push(Box::new(f));
+    }
+
+    fn fire_card_clicked(&self, name : &String, evt : &EventButton) {
+        for f in self.card_clicked_events.borrow().iter() {
+            f(self, name, evt);
+        }
     }
 
     fn on_update_clicked(&self) {
         // TODO: update grid of card_view with cards
         // meeting the current search criteria
-        let mut cards : Vec<&CardInfo> = self.current_tcg.cards.values().collect();
+        let mut cards : Vec<CardInfo> = self.current_tcg.cards.values().map(|c| c.clone()).collect();
         if let Some(text) = self.card_name_search.get_text() {
-            cards = cards.iter().filter(|&&c| c.name.contains(&text)).map(|c| *c).collect();
+            cards = cards.iter().filter(|&c| c.name.contains(&text)).map(|c| c.clone()).collect();
         }
         if let Some(text) = self.card_text_search.get_text() {
             // TODO: add card text

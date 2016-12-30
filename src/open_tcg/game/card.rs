@@ -37,7 +37,7 @@ type ParamValues = HashMap<String, i32>;
 // Note: this represents the info associated with a card common to editing and game play.
 // There will be a different structure representing attributes of a card in game (such as location,
 // orientation, face-up/face-down, etc.)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CardInfo {
     pub name : String,
     pub card_type : CardType,
@@ -84,7 +84,7 @@ impl CardInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CardType {
     pub name : String,
     pub param_names : Vec<String>

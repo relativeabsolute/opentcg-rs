@@ -49,6 +49,7 @@ impl DeckEditor {
 
 
         // TODO: fill in control setup and event connections
+        DeckEditor::connect_events(instance.clone());
 
         instance.window.show_all();
         instance
@@ -71,5 +72,14 @@ impl DeckEditor {
         instance.editor_box.pack_end(&instance.card_search.frame, false, false, 0);
 
         instance
+    }
+
+    fn connect_events(instance : Rc<DeckEditor>) {
+        {
+            let instance_copy = instance.clone();
+            instance.card_search.connect_card_clicked(move |_, name, _| {
+                instance_copy.card_display.set_card(name);
+            });
+        }
     }
 }
