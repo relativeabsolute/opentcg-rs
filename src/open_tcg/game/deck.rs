@@ -31,11 +31,18 @@ pub struct DeckSectionInfo {
     pub min_size : u32,
 
     /// Defines the maximum number of cards in this section of the deck
-    pub max_size : u32
+    pub max_size : u32,
+
+    /// Defines the number of rows to be used in the deck editor for this section
+    pub rows : u32,
+
+    /// Defines the number of columns to be used in the deck editor for this section
+    pub columns : u32
 }
 
 impl DeckSectionInfo {
     pub fn new() -> DeckSectionInfo {
-        DeckSectionInfo{name : String::new(), group : 0, min_size : 0, max_size : 0}
+        DeckSectionInfo{name : String::new(), group : 0, min_size : 0, max_size : 0,
+            rows : 0, columns : 0}
     }
 }

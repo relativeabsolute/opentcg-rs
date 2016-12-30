@@ -21,12 +21,14 @@
 // SOFTWARE.
 
 extern crate sxd_document;
-use self::sxd_document::dom::{ChildOfRoot, Element};
+use self::sxd_document::dom::Element;
 
 pub fn read_text_from_element(element : &Element) -> String {
     let mut result = String::new();
-    if let Some(text) = element.children()[0].text() {
-        result = text.text().trim().to_string();
+    if element.children().len() > 0 {
+        if let Some(text) = element.children()[0].text() {
+            result = text.text().trim().to_string();
+        }
     }
     result
 }

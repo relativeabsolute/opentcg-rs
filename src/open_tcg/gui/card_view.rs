@@ -28,42 +28,48 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use gtk::prelude::*;
-use gtk::{Grid, Image, EventBox, Window};
+use gtk::{Grid, Image, EventBox};
 use self::gdk::{EventButton, EventMotion};
-use self::gdk_pixbuf::Pixbuf;
 
-use open_tcg::game::tcg::TCG;
 use open_tcg::game::card::CardInfo;
 use super::image_manager::ImageManager;
 
-const row_count : usize = 5;
-const col_count : usize = 4;
+const DEFAULT_ROW_COUNT : usize = 5;
+const DEFAULT_COL_COUNT : usize = 4;
 
 pub struct CardView {
     pub grid : Grid,
     images : Vec<Image>,
     boxes : Vec<EventBox>,
     card_clicked_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventButton)>>>,
-    img_manager : Rc<ImageManager>
+    card_hover_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventMotion)>>>,
+    img_manager : Rc<ImageManager>,
+    row_count : usize,
+    col_count : usize
 }
 
 impl CardView {
     pub fn new(img_manager : Rc<ImageManager>) -> Rc<CardView> {
-        let instance = Rc::new(CardView::init_controls(img_manager));
+        CardView::new_with_size(img_manager, DEFAULT_ROW_COUNT, DEFAULT_COL_COUNT)
+    }
+
+    pub fn new_with_size(img_manager : Rc<ImageManager>, row_count : usize, col_count : usize) -> Rc<CardView> {
+        let instance = Rc::new(CardView::init_controls(img_manager, row_count, col_count));
 
         CardView::connect_events(instance.clone());
 
         instance
+
     }
 
     fn connect_events(instance : Rc<CardView>) {
-        for i in 0..row_count {
-            for j in 0..col_count {
-                let index = i * col_count + j;
+        for i in 0..instance.row_count {
+            for j in 0..instance.col_count {
+                let index = i * instance.col_count + j;
                 {
                     let instance_copy = instance.clone();
-                    instance.boxes[index].connect_motion_notify_event(move |_, _| {
-                        instance_copy.on_image_hover(index);
+                    instance.boxes[index].connect_motion_notify_event(move |_, evt| {
+                        instance_copy.on_image_hover(index, evt);
                         Inhibit(true)
                     });
                 }
@@ -78,8 +84,20 @@ impl CardView {
         }
     }
 
+    pub fn get_row_count(&self) -> usize {
+        self.row_count
+    }
+
+    pub fn get_col_count(&self) -> usize {
+        self.col_count
+    }
+
     pub fn connect_card_clicked<F : Fn(&Self, &String, &EventButton) + 'static>(&self, f : F) {
         self.card_clicked_events.borrow_mut().push(Box::new(f));
+    }
+
+    pub fn connect_card_hover<F : Fn(&Self, &String, &EventMotion) + 'static>(&self, f : F) {
+        self.card_hover_events.borrow_mut().push(Box::new(f));
     }
 
     fn fire_card_clicked(&self, name : &String, evt : &EventButton) {
@@ -88,8 +106,15 @@ impl CardView {
         }
     }
 
-    fn on_image_hover(&self, index : usize) {
+    fn fire_card_hover(&self, name : &String, evt : &EventMotion) {
+        for f in self.card_hover_events.borrow().iter() {
+            f(self, name, evt);
+        }
+    }
+
+    fn on_image_hover(&self, index : usize, evt : &EventMotion) {
         if self.images[index].get_visible() {
+            self.fire_card_hover(&self.boxes[index].get_tooltip_text().unwrap(), evt);
         }
     }
 
@@ -99,21 +124,24 @@ impl CardView {
         }
     }
 
-    fn init_controls(img_manager : Rc<ImageManager>) -> CardView {
+    fn init_controls(img_manager : Rc<ImageManager>, row_count : usize, col_count : usize) -> CardView {
         // the easiest way to do this seems to be to create an array of images
         // whose tooltips are the names of their corresponding cards
         // then we can simply set those lying past a certain index
         // to not be visible
-        let count = row_count * col_count;
+        let count = DEFAULT_ROW_COUNT * DEFAULT_COL_COUNT;
         let mut result = CardView{grid : Grid::new(),
             images : Vec::with_capacity(count),
             boxes : Vec::with_capacity(count),
             img_manager : img_manager,
-            card_clicked_events : RefCell::new(Vec::new())};
+            card_clicked_events : RefCell::new(Vec::new()),
+            card_hover_events : RefCell::new(Vec::new()),
+            row_count : row_count,
+            col_count : col_count};
 
-        for i in 0..row_count {
-            for j in 0..col_count {
-                let index = i * col_count + j;
+        for i in 0..result.row_count {
+            for j in 0..result.col_count {
+                let index = i * result.col_count + j;
                 let img = Image::new();
                 img.set_visible(false);
                 result.images.push(img);
@@ -132,9 +160,9 @@ impl CardView {
     pub fn set_cards(&self, cards : &Vec<CardInfo>) {
         // using CardInfos directly removes the need to keep an Rc to the current TCG
         let cutoff = cards.len();
-        for i in 0..row_count {
-            for j in 0..col_count {
-                let index = i * col_count + j;
+        for i in 0..self.row_count {
+            for j in 0..self.col_count {
+                let index = i * self.col_count + j;
                 if index < cutoff {
                     // TODO: unload previously loaded images
                     self.img_manager.load_image(&cards[index].set_code);

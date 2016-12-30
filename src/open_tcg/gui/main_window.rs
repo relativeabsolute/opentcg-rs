@@ -50,7 +50,7 @@ impl MainWindow {
         instance.determine_size();
         MainWindow::connect_events(instance.clone());
         
-
+        instance.window.set_title("OpenTCG");
         instance.window.show_all();
         instance
     }
@@ -59,7 +59,7 @@ impl MainWindow {
         let glade_src = include_str!("main_window.glade");
         let builder = Builder::new_from_string(glade_src);
 
-        let mut instance = MainWindow{window : builder.get_object("window").unwrap(),
+        let instance = MainWindow{window : builder.get_object("window").unwrap(),
             play_button : builder.get_object("play_button").unwrap(),
             deck_edit_button : builder.get_object("deck_edit_button").unwrap(),
             view_profile_button : builder.get_object("view_profile_button").unwrap(),
@@ -72,13 +72,13 @@ impl MainWindow {
         // attach events here
         {
             let instance_copy = instance.clone();
-            instance.play_button.connect_clicked(move |widget| {
+            instance.play_button.connect_clicked(move |_| {
                 instance_copy.on_play_clicked();
             });
         }
         {
             let instance_copy = instance.clone();
-            instance.deck_edit_button.connect_clicked(move |widget| {
+            instance.deck_edit_button.connect_clicked(move |_| {
                 instance_copy.on_constructor_clicked();
             });
         }

@@ -27,7 +27,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use gtk::prelude::*;
-use gtk::{Builder, Button, Frame, Image, TextView, Label,
+use gtk::{Builder, Button, Frame, 
     SearchEntry, ComboBoxText};
 use self::gdk::{EventButton, EventMotion};
 use gtk::Box as GtkBox;
@@ -46,7 +46,8 @@ pub struct CardSearch {
     update_button : Button,
     clear_button : Button,
     current_tcg : Rc<TCG>,
-    card_clicked_events : RefCell<Vec<Box<Fn(&CardSearch, &String, &EventButton)>>>
+    card_clicked_events : RefCell<Vec<Box<Fn(&CardSearch, &String, &EventButton)>>>,
+    card_hover_events : RefCell<Vec<Box<Fn(&CardSearch, &String, &EventMotion)>>>
 }
 
 impl CardSearch {
@@ -63,7 +64,7 @@ impl CardSearch {
         let glade_src = include_str!("card_search.glade");
         let builder = Builder::new_from_string(glade_src);
 
-        let mut instance = CardSearch{frame : builder.get_object("card_search").unwrap(),
+        let instance = CardSearch{frame : builder.get_object("card_search").unwrap(),
             current_tcg : tcg,
             card_name_search : builder.get_object("card_name_search").unwrap(),
             card_text_search : builder.get_object("card_text_search").unwrap(),
@@ -72,7 +73,8 @@ impl CardSearch {
             update_button : builder.get_object("update_button").unwrap(),
             clear_button : builder.get_object("clear_button").unwrap(),
             card_view : CardView::new(img_manager),
-            card_clicked_events : RefCell::new(Vec::new())};
+            card_clicked_events : RefCell::new(Vec::new()),
+            card_hover_events : RefCell::new(Vec::new())};
         
         instance.type_choice.append(None, "All Types");
         for type_name in instance.current_tcg.card_types.keys() {
@@ -80,7 +82,8 @@ impl CardSearch {
         }
         instance.type_choice.set_active(0);
 
-        instance.search_items_box.pack_end(&instance.card_view.grid, false, false, 0);
+        // TODO: add spacing
+        instance.search_items_box.pack_start(&instance.card_view.grid, false, false, 0);
 
         instance
     }
@@ -105,14 +108,30 @@ impl CardSearch {
                 instance_copy.fire_card_clicked(name, evt);
             });
         }
+        {
+            let instance_copy = instance.clone();
+            instance.card_view.connect_card_hover(move |_, name, evt| {
+                instance_copy.fire_card_hover(name, evt);
+            });
+        }
     }
 
     pub fn connect_card_clicked<F : Fn(&Self, &String, &EventButton) + 'static>(&self, f : F) {
         self.card_clicked_events.borrow_mut().push(Box::new(f));
     }
 
+    pub fn connect_card_hover<F : Fn(&Self, &String, &EventMotion) + 'static>(&self, f : F) {
+        self.card_hover_events.borrow_mut().push(Box::new(f));
+    }
+
     fn fire_card_clicked(&self, name : &String, evt : &EventButton) {
         for f in self.card_clicked_events.borrow().iter() {
+            f(self, name, evt);
+        }
+    }
+
+    fn fire_card_hover(&self, name : &String, evt : &EventMotion) {
+        for f in self.card_hover_events.borrow().iter() {
             f(self, name, evt);
         }
     }

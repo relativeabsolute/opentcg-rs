@@ -24,7 +24,6 @@ extern crate sxd_document;
 
 use std::collections::HashMap;
 use std::fs;
-use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use open_tcg::game::deck::DeckSectionInfo;
@@ -33,7 +32,6 @@ use open_tcg::util::{files, xml};
 
 use self::sxd_document::QName;
 use self::sxd_document::dom::Element;
-use std::fmt;
 
 type CardMap = HashMap<String, CardInfo>;
 type DeckSections = Vec<DeckSectionInfo>;
@@ -50,7 +48,7 @@ pub struct TCG {
     // filename to read card info from
     set_file : String,
 
-    sections : DeckSections,
+    pub sections : DeckSections,
 
     pub cards : CardMap,
 
@@ -113,6 +111,8 @@ impl TCG {
         let group_name = QName::new("Group");
         let min_name = QName::new("MinSize");
         let max_name = QName::new("MaxSize");
+        let row_name = QName::new("Rows");
+        let column_name = QName::new("Column");
 
         for e in deck_element.children() {
             if let Some(element) = e.element() {
@@ -129,6 +129,10 @@ impl TCG {
                                 section.min_size = xml::read_num_from_element(&section_element);
                             } else if element_name == max_name {
                                 section.max_size = xml::read_num_from_element(&section_element);
+                            } else if element_name == row_name {
+                                section.rows = xml::read_num_from_element(&section_element);
+                            } else if element_name == column_name {
+                                section.columns = xml::read_num_from_element(&section_element);
                             }
                         }
                     }

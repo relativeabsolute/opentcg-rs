@@ -25,7 +25,7 @@ extern crate sxd_document;
 use self::sxd_document::parser;
 use self::sxd_document::Package;
 
-use std::io::{self, BufReader, Lines};
+use std::io::{BufReader, Lines};
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;

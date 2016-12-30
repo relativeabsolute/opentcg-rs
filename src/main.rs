@@ -26,8 +26,6 @@ use open_tcg::gui::main_window::MainWindow;
 
 mod open_tcg;
 
-use gtk::prelude::*;
-
 fn main() {
 	if gtk::init().is_err() {
 		println!("Couldn't init GTK.");

@@ -23,12 +23,9 @@
 extern crate sxd_document;
 
 use std::collections::HashMap;
-use std::fs;
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use self::sxd_document::QName;
-use self::sxd_document::dom::Element;
 
 use open_tcg::util::{files, xml};
 
@@ -43,7 +40,8 @@ pub struct CardInfo {
     pub card_type : CardType,
     pub param_values : ParamValues,
     pub set_name : String,
-    pub set_code : String // this is also used as an image handle
+    pub set_code : String, // this is also used as an image handle
+    pub text : String
     // TODO: fill this in with card type, parameters, etc.
     
 }
@@ -51,7 +49,7 @@ pub struct CardInfo {
 impl CardInfo {
     pub fn new() -> CardInfo {
         CardInfo{name : String::new(), card_type : CardType::new(), param_values : HashMap::new(),
-            set_name : String::new(), set_code : String::new()}
+            set_name : String::new(), set_code : String::new(), text : String::new()}
     }
 
     pub fn new_from_file(filename : &PathBuf) -> CardInfo {
@@ -64,6 +62,7 @@ impl CardInfo {
         let name_name = QName::new("Name");
         let set_code_name = QName::new("SetCode");
         let set_name_name = QName::new("SetName");
+        let text_name = QName::new("CardText");
 
         if let Some(card_root) = children[0].element() {
             for e in card_root.children() {
@@ -75,6 +74,8 @@ impl CardInfo {
                         result.set_code = xml::read_text_from_element(&element);
                     } else if element_name == set_name_name {
                         result.set_name = xml::read_text_from_element(&element);
+                    } else if element_name == text_name {
+                        result.text = xml::read_text_from_element(&element);
                     }
                 }
             }

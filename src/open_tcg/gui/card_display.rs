@@ -25,7 +25,7 @@ extern crate gtk;
 use std::rc::Rc;
 
 use gtk::prelude::*;
-use gtk::{Builder, Frame, Image, TextView, Label};
+use gtk::{Builder, Frame, Image, TextView, Label, WrapMode};
 
 use open_tcg::game::tcg::TCG;
 
@@ -44,10 +44,13 @@ impl CardDisplay {
         let glade_src = include_str!("card_display.glade");
         let builder = Builder::new_from_string(glade_src);
 
-        let mut instance = CardDisplay{frame : builder.get_object("card_display").unwrap(),
+        let instance = CardDisplay{frame : builder.get_object("card_display").unwrap(),
             card_name_label : builder.get_object("card_name_label").unwrap(),
             card_text_view : builder.get_object("card_text_view").unwrap(),
             card_image : builder.get_object("card_image").unwrap(), current_tcg : tcg};
+
+        // TODO: prevent the ugly, constant resizing upon changing the card
+        instance.card_text_view.set_wrap_mode(WrapMode::Word);
 
         instance
     }
@@ -55,6 +58,9 @@ impl CardDisplay {
     pub fn set_card(&self, name : &String) {
        if let Some(card) = self.current_tcg.cards.get(name) {
            self.card_name_label.set_text(&card.name);
+           if let Some(buffer) = self.card_text_view.get_buffer() {
+               buffer.set_text(&card.text);
+           }
        }
     }
 }
