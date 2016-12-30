@@ -70,7 +70,7 @@ impl DeckEditor {
 
         let img_manager = Rc::new(ImageManager::new());
         let instance = DeckEditor{window : builder.get_object("window").unwrap(),
-            card_display : CardDisplay::new(tcg.clone()), 
+            card_display : CardDisplay::new(tcg.clone(), img_manager.clone()), 
             card_search : CardSearch::new(tcg.clone(), img_manager.clone()),
             current_tcg : tcg,
             editor_box : builder.get_object("editor_box").unwrap(),
@@ -94,13 +94,9 @@ impl DeckEditor {
         let tcg_clone = self.current_tcg.clone();
         for section in tcg_clone.sections.iter() {
             let section_frame = Frame::new(Some(&section.name));
-            // TODO: modify section_view size based on max number of 
-            // cards in section
 
             let section_view = CardView::new_with_size(self.img_manager.clone(),
                 section.rows as usize, section.columns as usize);
-
-            
 
             section_frame.add(&section_view.grid);
 
