@@ -106,13 +106,13 @@ impl TCG {
     fn read_deck(deck_element : &Element) -> DeckSections {
         let mut sections = Vec::new();
 
-        let section_name = QName::new("Section");
+        let section_name = QName::new("Subsection");
         let name_name = QName::new("Name");
         let group_name = QName::new("Group");
         let min_name = QName::new("MinSize");
         let max_name = QName::new("MaxSize");
         let row_name = QName::new("Rows");
-        let column_name = QName::new("Column");
+        let columns_name = QName::new("Columns");
 
         for e in deck_element.children() {
             if let Some(element) = e.element() {
@@ -131,7 +131,7 @@ impl TCG {
                                 section.max_size = xml::read_num_from_element(&section_element);
                             } else if element_name == row_name {
                                 section.rows = xml::read_num_from_element(&section_element);
-                            } else if element_name == column_name {
+                            } else if element_name == columns_name {
                                 section.columns = xml::read_num_from_element(&section_element);
                             }
                         }

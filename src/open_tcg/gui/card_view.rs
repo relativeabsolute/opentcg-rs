@@ -92,6 +92,7 @@ impl CardView {
         self.col_count
     }
 
+    // TODO: change to drag and drop
     pub fn connect_card_clicked<F : Fn(&Self, &String, &EventButton) + 'static>(&self, f : F) {
         self.card_clicked_events.borrow_mut().push(Box::new(f));
     }
@@ -113,14 +114,14 @@ impl CardView {
     }
 
     fn on_image_hover(&self, index : usize, evt : &EventMotion) {
-        if self.images[index].get_visible() {
-            self.fire_card_hover(&self.boxes[index].get_tooltip_text().unwrap(), evt);
+        if let Some(text) = self.boxes[index].get_tooltip_text() {
+            self.fire_card_hover(&text, evt);
         }
     }
 
     fn on_image_click(&self, index : usize, evt : &EventButton) {
-        if self.images[index].get_visible() {
-            self.fire_card_clicked(&self.boxes[index].get_tooltip_text().unwrap(), evt);
+        if let Some(text) = self.boxes[index].get_tooltip_text() {
+            self.fire_card_clicked(&text ,evt);
         }
     }
 
@@ -129,7 +130,7 @@ impl CardView {
         // whose tooltips are the names of their corresponding cards
         // then we can simply set those lying past a certain index
         // to not be visible
-        let count = DEFAULT_ROW_COUNT * DEFAULT_COL_COUNT;
+        let count = row_count * col_count;
         let mut result = CardView{grid : Grid::new(),
             images : Vec::with_capacity(count),
             boxes : Vec::with_capacity(count),
@@ -143,7 +144,6 @@ impl CardView {
             for j in 0..result.col_count {
                 let index = i * result.col_count + j;
                 let img = Image::new();
-                img.set_visible(false);
                 result.images.push(img);
                 let evt_box = EventBox::new();
                 evt_box.set_above_child(false);
@@ -152,6 +152,10 @@ impl CardView {
                 result.grid.attach(&result.boxes[index], j as i32, i as i32, 1, 1);
             }
         }
+
+        result.img_manager.load_image(&"proxy".to_string());
+        let empty_vec : Vec<CardInfo> = Vec::new();
+        result.set_cards(&empty_vec);
 
         result
 
@@ -168,11 +172,13 @@ impl CardView {
                     self.img_manager.load_image(&cards[index].set_code);
                     if let Some(img) = self.img_manager.get_small_image(&cards[index].set_code) {
                         self.images[index].set_from_pixbuf(Some(&img));
-                        self.images[index].set_visible(true);
                         self.boxes[index].set_tooltip_text(Some(&cards[index].name));
                     }
                 } else {
-                    self.images[index].set_visible(false);
+                    if let Some(img) = self.img_manager.get_small_image(&"proxy".to_string()) {
+                        self.images[index].set_from_pixbuf(Some(&img));
+                        self.boxes[index].set_tooltip_text(None);
+                    }
                 }
             }
         }

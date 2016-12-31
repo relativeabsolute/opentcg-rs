@@ -144,13 +144,14 @@ impl CardSearch {
             cards = cards.iter().filter(|&c| c.name.contains(&text)).map(|c| c.clone()).collect();
         }
         if let Some(text) = self.card_text_search.get_text() {
-            // TODO: add card text
+            cards = cards.iter().filter(|&c| c.text.contains(&text)).map(|c| c.clone()).collect();
         }
         self.card_view.set_cards(&cards);
         // TODO: pass cards to cardview
     }
 
     fn on_clear_clicked(&self) {
+        // TODO: not sure if the previous search results should be cleared as well
         self.card_name_search.set_text("");
         self.card_text_search.set_text("");
         self.type_choice.set_active(0);

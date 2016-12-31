@@ -35,8 +35,8 @@ struct ImageSizes {
     pub large : Rc<Pixbuf>
 }
 
-const DEFAULT_SMALL_SCALE : i32 = 150;
-const DEFAULT_LARGE_SCALE : i32 = 300;
+const DEFAULT_SMALL_SCALE : i32 = 100;
+const DEFAULT_LARGE_SCALE : i32 = 250;
 
 pub struct ImageManager {
     images : RefCell<HashMap<String, Rc<ImageSizes>>>,
