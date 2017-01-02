@@ -25,12 +25,24 @@ name = "OpenTCG"
 version = "0.1.0"
 authors = ["johan"]
 
-[dependencies]
-glib = "^0"
-gdk = "^0"
-gdk-pixbuf = "^0"
-sxd-document = "0.2.0"
+[dependencies.glib]
+version = "0.1.1"
 
 [dependencies.gtk]
-version = "0.1.0"
+version = "0.1.1"
 features = ["v3_16"]
+
+[dependencies.gtk-sys]
+version = "0.3.2"
+
+[dependencies.gdk]
+version = "0.5.1"
+
+[dependencies.gdk-sys]
+version = "0.3.2"
+
+[dependencies.gdk-pixbuf]
+version = "0.1.1"
+
+[dependencies.sxd-document]
+version = "0.2.0"

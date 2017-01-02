@@ -64,6 +64,7 @@ impl CardSearch {
         let glade_src = include_str!("card_search.glade");
         let builder = Builder::new_from_string(glade_src);
 
+        let tcg_clone = tcg.clone();
         let instance = CardSearch{frame : builder.get_object("card_search").unwrap(),
             current_tcg : tcg,
             card_name_search : builder.get_object("card_name_search").unwrap(),
@@ -72,7 +73,7 @@ impl CardSearch {
             search_items_box : builder.get_object("search_items_box").unwrap(),
             update_button : builder.get_object("update_button").unwrap(),
             clear_button : builder.get_object("clear_button").unwrap(),
-            card_view : CardView::new(img_manager),
+            card_view : CardView::new(tcg_clone, img_manager),
             card_clicked_events : RefCell::new(Vec::new()),
             card_hover_events : RefCell::new(Vec::new())};
         

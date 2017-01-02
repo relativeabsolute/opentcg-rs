@@ -22,20 +22,28 @@
 
 extern crate gtk;
 extern crate gdk;
+extern crate gdk_sys as gdk_ffi;
 extern crate gdk_pixbuf;
+extern crate gtk_sys as gtk_ffi;
+extern crate glib;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::ptr;
 
 use gtk::prelude::*;
-use gtk::{Grid, Image, EventBox};
-use self::gdk::{EventButton, EventMotion};
+use gtk::{Grid, Image, EventBox, SelectionData, Menu, MenuItem};
+use self::gdk::{EventButton, EventMotion, DragContext};
 
 use open_tcg::game::card::CardInfo;
+use open_tcg::game::tcg::TCG;
 use super::image_manager::ImageManager;
+
+use self::glib::translate::*;
 
 const DEFAULT_ROW_COUNT : usize = 5;
 const DEFAULT_COL_COUNT : usize = 4;
+const RIGHT_MOUSE_BUTTON : u32 = 3;
 
 pub struct CardView {
     pub grid : Grid,
@@ -43,18 +51,20 @@ pub struct CardView {
     boxes : Vec<EventBox>,
     card_clicked_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventButton)>>>,
     card_hover_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventMotion)>>>,
+    card_drag_data_get_events : RefCell<Vec<Box<Fn(&CardView, &DragContext, &SelectionData, u32, u32)>>>,
     img_manager : Rc<ImageManager>,
+    current_tcg : Rc<TCG>,
     row_count : usize,
     col_count : usize
 }
 
 impl CardView {
-    pub fn new(img_manager : Rc<ImageManager>) -> Rc<CardView> {
-        CardView::new_with_size(img_manager, DEFAULT_ROW_COUNT, DEFAULT_COL_COUNT)
+    pub fn new(tcg : Rc<TCG>, img_manager : Rc<ImageManager>) -> Rc<CardView> {
+        CardView::new_with_size(tcg, img_manager, DEFAULT_ROW_COUNT, DEFAULT_COL_COUNT)
     }
 
-    pub fn new_with_size(img_manager : Rc<ImageManager>, row_count : usize, col_count : usize) -> Rc<CardView> {
-        let instance = Rc::new(CardView::init_controls(img_manager, row_count, col_count));
+    pub fn new_with_size(tcg : Rc<TCG>, img_manager : Rc<ImageManager>, row_count : usize, col_count : usize) -> Rc<CardView> {
+        let instance = Rc::new(CardView::init_controls(tcg, img_manager, row_count, col_count));
 
         CardView::connect_events(instance.clone());
 
@@ -76,8 +86,47 @@ impl CardView {
                 {
                     let instance_copy = instance.clone();
                     instance.boxes[index].connect_button_press_event(move |_, evt| {
-                        instance_copy.on_image_click(index, evt);
+                        if let Some(text) = instance_copy.boxes[index].get_tooltip_text() {
+                            /*
+                            let button = evt.as_ref().button as u32;
+                            if button == RIGHT_MOUSE_BUTTON {
+                                let menu = Menu::new();
+                                for i in 0..instance_copy.current_tcg.sections.len() {
+                                    let label = "Add to ".to_string() + &instance_copy.current_tcg.sections[i].name;
+                                    let item = MenuItem::new_with_label(&label);
+                                    let instance_copy2 = instance_copy.clone();
+                                    item.connect_activate(move |_| {
+                                        instance_copy2.on_add_menu_item_clicked(i);
+                                    });
+                                    menu.attach(&item, 0, 1, i as u32, (i + 1) as u32);
+                                }
+                                let mut (mx, my) = evt.get_position();
+                                // TODO: this doesn't work...
+                                menu.popup(None, None, move |_, x, y| {
+                                    let mut tmp_x : &mut i32 = &(mx as i32);
+                                    let mut tmp_y : &mut i32 = my as i32;
+                                    x = tmp_x;
+                                    y = tmp_y;
+                                    true
+                                }, button, 0);
+                            }
+                            */
+             
+                            instance_copy.on_image_click(&text, index, evt);
+                        }
                         Inhibit(true)
+                    });
+                }
+                {
+                    let instance_copy = instance.clone();
+                    instance.boxes[index].connect_drag_data_get(move |_, context, data, info, time| {
+                        instance_copy.on_image_drag_data_get(index, context, data, info, time);
+                    });
+                }
+                {
+                    let instance_copy = instance.clone();
+                    instance.boxes[index].connect_drag_begin(move |_, context| {
+                        instance_copy.on_image_drag_begin(index, context);
                     });
                 }
             }
@@ -94,11 +143,16 @@ impl CardView {
 
     // TODO: change to drag and drop
     pub fn connect_card_clicked<F : Fn(&Self, &String, &EventButton) + 'static>(&self, f : F) {
+        // we should still keep this even if we use drag and drop
         self.card_clicked_events.borrow_mut().push(Box::new(f));
     }
 
     pub fn connect_card_hover<F : Fn(&Self, &String, &EventMotion) + 'static>(&self, f : F) {
         self.card_hover_events.borrow_mut().push(Box::new(f));
+    }
+
+    pub fn connect_card_drag_data_get<F : Fn(&Self, &DragContext, &SelectionData, u32, u32) + 'static>(&self, f : F) {
+        self.card_drag_data_get_events.borrow_mut().push(Box::new(f));
     }
 
     fn fire_card_clicked(&self, name : &String, evt : &EventButton) {
@@ -113,19 +167,46 @@ impl CardView {
         }
     }
 
+    fn fire_card_drag_data_get(&self, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
+        for f in self.card_drag_data_get_events.borrow().iter() {
+            f(self, context, data, info, time);
+        }
+    }
+
+    fn on_image_drag_begin(&self, index : usize, context : &DragContext) {
+        println!("Drag has been initiated");
+    }
+
+    fn on_image_drag_data_get(&self, index : usize, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
+        println!("Drag has been initiated");
+        if let Some(text) = self.boxes[index].get_tooltip_text() {
+            let mut new_data = data.clone();
+            new_data.set_text(&text, -1);
+            self.fire_card_drag_data_get(context, data, info, time);
+        } else {
+            context.drag_abort(time);
+        }
+    }
+
     fn on_image_hover(&self, index : usize, evt : &EventMotion) {
         if let Some(text) = self.boxes[index].get_tooltip_text() {
             self.fire_card_hover(&text, evt);
         }
     }
 
-    fn on_image_click(&self, index : usize, evt : &EventButton) {
-        if let Some(text) = self.boxes[index].get_tooltip_text() {
-            self.fire_card_clicked(&text ,evt);
-        }
+    fn on_add_menu_item_clicked(&self, index : usize) {
+
     }
 
-    fn init_controls(img_manager : Rc<ImageManager>, row_count : usize, col_count : usize) -> CardView {
+    // due to lifetime requirements, we can't handle popups here
+    // therefore the tooltip will be checked in the closure
+    // and this will only be called to handle any custom events
+    fn on_image_click(&self, text : &String, index : usize, evt : &EventButton) {
+                    self.fire_card_clicked(text ,evt);
+    }
+
+    /// Set up the controls of the CardView.
+    fn init_controls(tcg : Rc<TCG>, img_manager : Rc<ImageManager>, row_count : usize, col_count : usize) -> CardView {
         // the easiest way to do this seems to be to create an array of images
         // whose tooltips are the names of their corresponding cards
         // then we can simply set those lying past a certain index
@@ -135,10 +216,13 @@ impl CardView {
             images : Vec::with_capacity(count),
             boxes : Vec::with_capacity(count),
             img_manager : img_manager,
+            current_tcg : tcg,
             card_clicked_events : RefCell::new(Vec::new()),
             card_hover_events : RefCell::new(Vec::new()),
+            card_drag_data_get_events : RefCell::new(Vec::new()),
             row_count : row_count,
             col_count : col_count};
+
 
         for i in 0..result.row_count {
             for j in 0..result.col_count {
@@ -148,6 +232,15 @@ impl CardView {
                 let evt_box = EventBox::new();
                 evt_box.set_above_child(false);
                 evt_box.add(&result.images[index]);
+
+                // This seems to work!  just need to set up targets/destinations
+                unsafe {
+                    gtk_ffi::gtk_drag_source_set(evt_box.to_glib_none().0, gdk_ffi::GDK_BUTTON1_MASK, ptr::null_mut(), 0, gdk_ffi::GDK_ACTION_COPY);
+                }
+                /*
+                evt_box.drag_source_set(Gdk::BUTTON1_MASK);
+                evt_box.drag_source_add_text_targets();
+                */
                 result.boxes.push(evt_box);
                 result.grid.attach(&result.boxes[index], j as i32, i as i32, 1, 1);
             }
@@ -161,6 +254,10 @@ impl CardView {
 
     }
 
+    /// Set the cards displayed by this CardView
+    ///
+    /// Updates the grid to the images corresponding to the given cards, and
+    /// sets the remaining spaces to display a blank image.
     pub fn set_cards(&self, cards : &Vec<CardInfo>) {
         // using CardInfos directly removes the need to keep an Rc to the current TCG
         let cutoff = cards.len();

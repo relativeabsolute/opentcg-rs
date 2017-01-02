@@ -95,7 +95,7 @@ impl DeckEditor {
         for section in tcg_clone.sections.iter() {
             let section_frame = Frame::new(Some(&section.name));
 
-            let section_view = CardView::new_with_size(self.img_manager.clone(),
+            let section_view = CardView::new_with_size(self.current_tcg.clone(), self.img_manager.clone(),
                 section.rows as usize, section.columns as usize);
 
             section_frame.add(&section_view.grid);
