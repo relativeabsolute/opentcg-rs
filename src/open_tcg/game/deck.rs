@@ -20,6 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+extern crate sxd_document;
+
+use super::card::CardInfo;
+use std::collections::HashMap;
+use std::fs::File;
+use std::path::{Path, PathBuf};
+
+use self::sxd_document::Package;
+use self::sxd_document::writer::format_document;
+
 /// This structure defines an abstraction of the information
 /// associated with a subsection of a deck, such as main, side, etc.
 #[derive(Debug)]
@@ -44,5 +54,61 @@ impl DeckSectionInfo {
     pub fn new() -> DeckSectionInfo {
         DeckSectionInfo{name : String::new(), group : 0, min_size : 0, max_size : 0,
             rows : 0, columns : 0}
+    }
+}
+
+pub struct DeckSection {
+    /// Descriptor of the meta data associated with this deck section.
+    pub info : DeckSectionInfo,
+
+    /// Defines a map from card name to number of copies in this section
+    pub cards : HashMap<String, u32>
+}
+
+impl DeckSection {
+    pub fn new() -> DeckSection {
+        DeckSection { info : DeckSectionInfo::new(), cards : HashMap::new() }
+    }
+
+    pub fn new_from_file() -> DeckSection {
+        let mut result = DeckSection::new();
+
+        // TODO: fill this in
+
+        result
+    }
+
+    pub fn write_to_file(&self, filename : &PathBuf) {
+        let package = Package::new();
+        let doc = package.as_document();
+
+        let section = doc.create_element("Section");
+
+        let section_name = doc.create_element("Name");
+        let section_name_text = doc.create_text(&self.info.name);
+        section_name.append_child(section_name_text);
+        section.append_child(section_name);
+
+        let section_cards = doc.create_element("Cards");
+        for (name, copies) in self.cards.iter() {
+            let card = doc.create_element("Card");
+            let card_name = doc.create_element("Name");
+            let card_name_text = doc.create_text(&name);
+            card_name.append_child(card_name_text);
+            card.append_child(card_name);
+
+            let card_copies = doc.create_element("NumCopies");
+            let card_copies_text = doc.create_text(&format!("{}", copies));
+            card_copies.append_child(card_copies_text);
+            card.append_child(card_copies);
+
+            section_cards.append_child(card);
+        }
+        section.append_child(section_cards);
+
+        doc.root().append_child(section);
+
+        let mut file = File::create(filename).expect("Error writing file");
+        format_document(&doc, &mut file).ok().expect("Error writing document");
     }
 }
