@@ -29,9 +29,10 @@ use gtk::{Window, WindowPosition,
     Builder, Orientation, Frame, FlowBox, RadioButton};
 use gtk::Box as GtkBox;
 
-use self::gdk::Screen;
+use self::gdk::{Screen, EventButton};
 
 use open_tcg::game::tcg::TCG;
+use open_tcg::game::deck::Deck;
 use super::card_display::CardDisplay;
 use super::card_search::CardSearch;
 use super::card_view::CardView;
@@ -49,15 +50,15 @@ pub struct DeckEditor {
     img_manager : Rc<ImageManager>,
     deck_view : Frame,
     section_views : Vec<Rc<CardView>>,
-    section_buttons : Vec<RadioButton>
+    section_buttons : Vec<RadioButton>,
+    current_deck : Deck
 }
 
 impl DeckEditor {
     pub fn new(tcg : Rc<TCG>) -> Rc<DeckEditor> {
         let instance = Rc::new(DeckEditor::init_controls(tcg));
 
-
-        // TODO: fill in control setup and event connections
+        // TODO: load deck that was last being edited
         DeckEditor::connect_events(instance.clone());
 
         instance.determine_size();
@@ -73,6 +74,7 @@ impl DeckEditor {
         let builder = Builder::new_from_string(glade_src);
 
         let img_manager = Rc::new(ImageManager::new());
+        let tcg_clone = tcg.clone();
         let mut instance = DeckEditor{window : builder.get_object("window").unwrap(),
             card_display : CardDisplay::new(tcg.clone(), img_manager.clone()), 
             card_search : CardSearch::new(tcg.clone(), img_manager.clone()),
@@ -83,7 +85,8 @@ impl DeckEditor {
             img_manager : img_manager,
             deck_view : Frame::new(Some("Deck")),
             section_views : Vec::new(),
-            section_buttons : Vec::new()};
+            section_buttons : Vec::new(),
+            current_deck : tcg_clone.new_deck()};
         
 
         instance.init_add_to_buttons();
@@ -178,6 +181,18 @@ impl DeckEditor {
             instance.card_search.connect_card_clicked(move |_, name, _| {
                 instance_copy.add_card(name);
             });
+        }
+        for i in 0..instance.section_views.len() {
+            let instance_copy = instance.clone();
+            instance.section_views[i].connect_card_clicked(move |widget, name, evt| {
+                instance_copy.on_section_view_clicked(widget, name, evt);
+            });
+        }
+    }
+
+    fn on_section_view_clicked(&self, widget : &CardView, name : &String, evt : &EventButton) {
+        if evt.as_ref().button == 3 {
+            widget.remove_card(name);
         }
     }
 }

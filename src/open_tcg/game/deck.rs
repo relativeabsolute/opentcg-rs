@@ -32,7 +32,7 @@ use self::sxd_document::writer::format_document;
 
 /// This structure defines an abstraction of the information
 /// associated with a subsection of a deck, such as main, side, etc.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DeckSectionInfo {
     pub name : String,
     pub group : u32,
@@ -111,4 +111,9 @@ impl DeckSection {
         let mut file = File::create(filename).expect("Error writing file");
         format_document(&doc, &mut file).ok().expect("Error writing document");
     }
+}
+
+pub struct Deck {
+    pub sections : Vec<DeckSection>,
+    pub name : String
 }

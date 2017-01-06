@@ -353,6 +353,16 @@ impl CardView {
         self.update_cards();
     }
 
+    pub fn remove_card(&self, name : &String) {
+        {
+            let mut cards = self.cards.borrow_mut();
+            if let Some(index) = cards.iter().position(|ref card| card.name == *name) {
+                cards.remove(index);
+            }
+        }
+        self.update_cards();
+    }
+
     // TODO: display a single proxy card initially
     // TODO: connect mouse events
     // TODO: update images based upon collection of card names

@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use open_tcg::game::deck::DeckSectionInfo;
+use open_tcg::game::deck::*;
 use open_tcg::game::card::{CardInfo, CardType};
 use open_tcg::util::{files, xml};
 
@@ -73,6 +73,18 @@ impl TCG {
                 let name = card_type.name.clone();
                 result.insert(name, card_type);
             }
+        }
+
+        result
+    }
+
+    pub fn new_deck(&self) -> Deck {
+        let mut result = Deck{ sections : Vec::new(), name : String::new() };
+
+        for section in self.sections.iter() {
+            let mut deck_section = DeckSection::new();
+            deck_section.info = section.clone();
+            result.sections.push(deck_section);
         }
 
         result
