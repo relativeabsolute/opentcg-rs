@@ -49,13 +49,16 @@ pub struct CardView {
     pub grid : Grid,
     images : Vec<Image>,
     boxes : Vec<EventBox>,
+    cards : RefCell<Vec<CardInfo>>,
     card_clicked_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventButton)>>>,
     card_hover_events : RefCell<Vec<Box<Fn(&CardView, &String, &EventMotion)>>>,
     card_drag_data_get_events : RefCell<Vec<Box<Fn(&CardView, &DragContext, &SelectionData, u32, u32)>>>,
+    card_drag_data_received_events : RefCell<Vec<Box<Fn(&CardView, &DragContext, i32, i32, &SelectionData, u32, u32)>>>,
     img_manager : Rc<ImageManager>,
     current_tcg : Rc<TCG>,
     row_count : usize,
     col_count : usize
+    //targets : Vec<gtk_ffi::GtkTargetEntry>
 }
 
 impl CardView {
@@ -117,6 +120,9 @@ impl CardView {
                         Inhibit(true)
                     });
                 }
+                // TODO: since there seem to be issues with drag and drop, temporary solution is to
+                // add a group of radio buttons for each subsection
+                /*
                 {
                     let instance_copy = instance.clone();
                     instance.boxes[index].connect_drag_data_get(move |_, context, data, info, time| {
@@ -129,6 +135,20 @@ impl CardView {
                         instance_copy.on_image_drag_begin(index, context);
                     });
                 }
+                {
+                    let instance_copy = instance.clone();
+                    instance.boxes[index].connect_drag_data_received(move |_, context, x, y, data, info, time| {
+                        instance_copy.on_image_drag_data_received(index, context, x, y, data, info, time);
+                    });
+                }
+                
+                {
+                    let instance_copy = instance.clone();
+                    instance.boxes[index].connect_drag_drop(move |_, context, x, y, time| -> bool {
+                        instance_copy.on_image_drag_drop(index, context, x, y, time)
+                    });
+                }
+                */
             }
         }
     }
@@ -151,9 +171,15 @@ impl CardView {
         self.card_hover_events.borrow_mut().push(Box::new(f));
     }
 
+    /*
     pub fn connect_card_drag_data_get<F : Fn(&Self, &DragContext, &SelectionData, u32, u32) + 'static>(&self, f : F) {
         self.card_drag_data_get_events.borrow_mut().push(Box::new(f));
     }
+
+    pub fn connect_card_drag_data_received<F : Fn(&Self, &DragContext, i32, i32, &SelectionData, u32, u32) + 'static>(&self, f : F) {
+        self.card_drag_data_received_events.borrow_mut().push(Box::new(f));
+    }
+    */
 
     fn fire_card_clicked(&self, name : &String, evt : &EventButton) {
         for f in self.card_clicked_events.borrow().iter() {
@@ -167,19 +193,43 @@ impl CardView {
         }
     }
 
+    /*
     fn fire_card_drag_data_get(&self, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
         for f in self.card_drag_data_get_events.borrow().iter() {
             f(self, context, data, info, time);
         }
     }
 
+    fn fire_card_drag_data_received(&self, context : &DragContext, x : i32, y : i32, data : &SelectionData, info : u32, time : u32) {
+        for f in self.card_drag_data_received_events.borrow().iter() {
+            f(self, context, x, y, data, info, time);
+        }
+    }
+    
+    /*
+    fn on_image_drag_drop(&self, index : usize, context : &DragContext, x : i32, y : i32, time : u32) -> bool {
+        println!("Drag dropped.");
+        true
+    }
+    */
+
+    fn on_image_drag_data_received(&self, index : usize, context : &DragContext, x : i32, y : i32, data : &SelectionData, info : u32, time : u32) {
+        // here we accept regardless if the image is empty
+        println!("Drag data received!");
+        self.fire_card_drag_data_received(context, x, y, data, info, time);
+    }
+
+    // TODO: set up drag events conditionally
     fn on_image_drag_begin(&self, index : usize, context : &DragContext) {
-        println!("Drag has been initiated");
+        if let None = self.boxes[index].get_tooltip_text() {
+            context.drag_abort(0);
+        }
     }
 
     fn on_image_drag_data_get(&self, index : usize, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
-        println!("Drag has been initiated");
+        println!("Drag data get called");
         if let Some(text) = self.boxes[index].get_tooltip_text() {
+            println!("Text is {}", &text);
             let mut new_data = data.clone();
             new_data.set_text(&text, -1);
             self.fire_card_drag_data_get(context, data, info, time);
@@ -187,6 +237,7 @@ impl CardView {
             context.drag_abort(time);
         }
     }
+    */
 
     fn on_image_hover(&self, index : usize, evt : &EventMotion) {
         if let Some(text) = self.boxes[index].get_tooltip_text() {
@@ -202,7 +253,7 @@ impl CardView {
     // therefore the tooltip will be checked in the closure
     // and this will only be called to handle any custom events
     fn on_image_click(&self, text : &String, index : usize, evt : &EventButton) {
-                    self.fire_card_clicked(text ,evt);
+        self.fire_card_clicked(text ,evt);
     }
 
     /// Set up the controls of the CardView.
@@ -215,14 +266,21 @@ impl CardView {
         let mut result = CardView{grid : Grid::new(),
             images : Vec::with_capacity(count),
             boxes : Vec::with_capacity(count),
+            cards : RefCell::new(Vec::new()),
             img_manager : img_manager,
             current_tcg : tcg,
             card_clicked_events : RefCell::new(Vec::new()),
             card_hover_events : RefCell::new(Vec::new()),
             card_drag_data_get_events : RefCell::new(Vec::new()),
+            card_drag_data_received_events : RefCell::new(Vec::new()),
             row_count : row_count,
-            col_count : col_count};
-
+            col_count : col_count,
+            /*targets : Vec::new()*/};
+        
+        /*
+        let text_entry = gtk_ffi::GtkTargetEntry{target : "STRING".to_glib_none().0, flags : (gtk_ffi::GTK_TARGET_SAME_APP | gtk_ffi::GTK_TARGET_OTHER_WIDGET).bits(), info : 0};
+        result.targets.push(text_entry);
+        */
 
         for i in 0..result.row_count {
             for j in 0..result.col_count {
@@ -232,14 +290,15 @@ impl CardView {
                 let evt_box = EventBox::new();
                 evt_box.set_above_child(false);
                 evt_box.add(&result.images[index]);
-
-                // This seems to work!  just need to set up targets/destinations
-                unsafe {
-                    gtk_ffi::gtk_drag_source_set(evt_box.to_glib_none().0, gdk_ffi::GDK_BUTTON1_MASK, ptr::null_mut(), 0, gdk_ffi::GDK_ACTION_COPY);
-                }
+                
                 /*
-                evt_box.drag_source_set(Gdk::BUTTON1_MASK);
-                evt_box.drag_source_add_text_targets();
+                unsafe {
+                    let targets_ptr = result.targets.as_mut_ptr();
+                    gtk_ffi::gtk_drag_source_set(evt_box.to_glib_none().0, gdk_ffi::GDK_BUTTON1_MASK, targets_ptr, 1, gdk_ffi::GDK_ACTION_COPY);
+                    gtk_ffi::gtk_drag_dest_set(evt_box.to_glib_none().0, gtk_ffi::GTK_DEST_DEFAULT_ALL, targets_ptr, 1, gdk_ffi::GDK_ACTION_COPY);
+                }
+                // TODO: set up target entries
+                //evt_box.drag_source_add_text_targets();
                 */
                 result.boxes.push(evt_box);
                 result.grid.attach(&result.boxes[index], j as i32, i as i32, 1, 1);
@@ -254,12 +313,14 @@ impl CardView {
 
     }
 
-    /// Set the cards displayed by this CardView
-    ///
-    /// Updates the grid to the images corresponding to the given cards, and
-    /// sets the remaining spaces to display a blank image.
-    pub fn set_cards(&self, cards : &Vec<CardInfo>) {
+    pub fn add_card(&self, card : &CardInfo) {
+        self.cards.borrow_mut().push(card.clone());
+        self.update_cards();
+    }
+
+    fn update_cards(&self) {
         // using CardInfos directly removes the need to keep an Rc to the current TCG
+        let cards = self.cards.borrow();
         let cutoff = cards.len();
         for i in 0..self.row_count {
             for j in 0..self.col_count {
@@ -270,6 +331,7 @@ impl CardView {
                     if let Some(img) = self.img_manager.get_small_image(&cards[index].set_code) {
                         self.images[index].set_from_pixbuf(Some(&img));
                         self.boxes[index].set_tooltip_text(Some(&cards[index].name));
+                        //self.boxes[index].drag_source_set_icon_pixbuf(&img);
                     }
                 } else {
                     if let Some(img) = self.img_manager.get_small_image(&"proxy".to_string()) {
@@ -279,6 +341,16 @@ impl CardView {
                 }
             }
         }
+
+    }
+
+    /// Set the cards displayed by this CardView
+    ///
+    /// Updates the grid to the images corresponding to the given cards, and
+    /// sets the remaining spaces to display a blank image.
+    pub fn set_cards(&self, cards : &Vec<CardInfo>) {
+        *self.cards.borrow_mut() = cards.clone();
+        self.update_cards();
     }
 
     // TODO: display a single proxy card initially
