@@ -43,7 +43,7 @@ pub struct TCG {
 
     // TCGs generally impose a limit on the number of copies
     // of a card that can be in a deck
-    card_limit : u32,
+    pub card_limit : u32,
 
     // filename to read card info from
     set_file : String,

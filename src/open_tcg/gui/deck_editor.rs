@@ -24,19 +24,26 @@ extern crate gtk;
 extern crate gdk;
 
 use std::rc::Rc;
+use std::cell::RefCell;
+
 use gtk::prelude::*;
 use gtk::{Window, WindowPosition,
-    Builder, Orientation, Frame, FlowBox, RadioButton};
+    Builder, Orientation, Frame, FlowBox, RadioButton, SelectionData};
 use gtk::Box as GtkBox;
 
-use self::gdk::{Screen, EventButton};
+use self::gdk::{Screen, EventButton, DragContext};
 
 use open_tcg::game::tcg::TCG;
 use open_tcg::game::deck::Deck;
 use super::card_display::CardDisplay;
 use super::card_search::CardSearch;
-use super::card_view::CardView;
+use super::card_view::{CardView, CardViewType};
 use super::image_manager::ImageManager;
+
+struct DragInfo {
+    source_type : CardViewType,
+    source_data : String
+}
 
 pub struct DeckEditor {
     window : Window,
@@ -51,7 +58,8 @@ pub struct DeckEditor {
     deck_view : Frame,
     section_views : Vec<Rc<CardView>>,
     section_buttons : Vec<RadioButton>,
-    current_deck : Deck
+    current_deck : Deck,
+    drag_info : RefCell<Option<DragInfo>>
 }
 
 impl DeckEditor {
@@ -86,7 +94,8 @@ impl DeckEditor {
             deck_view : Frame::new(Some("Deck")),
             section_views : Vec::new(),
             section_buttons : Vec::new(),
-            current_deck : tcg_clone.new_deck()};
+            current_deck : tcg_clone.new_deck(),
+            drag_info : RefCell::new(None)};
         
 
         instance.init_add_to_buttons();
@@ -99,6 +108,8 @@ impl DeckEditor {
 
         instance
     }
+
+    // TODO: set up architecture to allow data transfer from cardsearch to editor views
 
     fn init_add_to_buttons(&mut self) {
         let tcg_clone = self.current_tcg.clone();
@@ -122,7 +133,7 @@ impl DeckEditor {
         for section in tcg_clone.sections.iter() {
             let section_frame = Frame::new(Some(&section.name));
 
-            let section_view = CardView::new_with_size(self.current_tcg.clone(), self.img_manager.clone(),
+            let section_view = CardView::new_with_size(CardViewType::EditorView, self.current_tcg.clone(), self.img_manager.clone(),
                 section.rows as usize, section.columns as usize);
 
             section_frame.add(&section_view.grid);
@@ -167,6 +178,26 @@ impl DeckEditor {
         }
     }
 
+    fn on_card_search_drag_data_get(&self, view : &CardView, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
+        if let Some(text) = view.get_dragged_text() {
+            println!("Text is {}", text);
+            *self.drag_info.borrow_mut() = Some(DragInfo{source_type : view.get_view_type(),
+                source_data : text.clone()});
+        }
+    }
+
+    fn on_deck_view_drag_drop(&self, view : &CardView, context : &DragContext, x : i32, y : i32, time : u32) {
+        if let Some(ref info) = *self.drag_info.borrow() {
+            if let CardViewType::SearchView = info.source_type {
+                println!("Source is from the search field.");
+                println!("Source text = {}", &info.source_data);
+                if let Some(card_info) = self.current_tcg.cards.get(&info.source_data) {
+                    view.add_card(&card_info);
+                }
+            }
+        }
+    }
+
     fn connect_events(instance : Rc<DeckEditor>) {
         {
             let instance_copy = instance.clone();
@@ -176,16 +207,24 @@ impl DeckEditor {
         }
         {
             let instance_copy = instance.clone();
+            instance.card_search.connect_card_drag_data_get(move |view, context, data, info, time| {
+                instance_copy.on_card_search_drag_data_get(view, context, data, info, time);
+            });
+        }
+        /*
+        {
+            let instance_copy = instance.clone();
             // TODO: check type of the eventbutton to ensure only card can be added
             // maybe on double click?
             instance.card_search.connect_card_clicked(move |_, name, _| {
                 instance_copy.add_card(name);
             });
         }
+        */
         for i in 0..instance.section_views.len() {
             let instance_copy = instance.clone();
-            instance.section_views[i].connect_card_clicked(move |widget, name, evt| {
-                instance_copy.on_section_view_clicked(widget, name, evt);
+            instance.section_views[i].connect_view_drag_drop(move |view, context, x, y, time| {
+                instance_copy.on_deck_view_drag_drop(view, context, x, y, time);
             });
         }
     }
