@@ -224,14 +224,12 @@ impl CardView {
     }
     
     fn on_image_drag_drop(&self, index : usize, context : &DragContext, x : i32, y : i32, time : u32) -> bool {
-        println!("Drag dropped.");
         self.fire_view_drag_drop(context, x, y, time);
         true
     }
 
     fn on_image_drag_data_received(&self, index : usize, context : &DragContext, x : i32, y : i32, data : &SelectionData, info : u32, time : u32) {
         // here we accept regardless if the image is empty
-        println!("Drag data received!");
         self.fire_card_drag_data_received(context, x, y, data, info, time);
     }
 
@@ -250,9 +248,7 @@ impl CardView {
     }
 
     fn on_image_drag_data_get(&self, index : usize, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
-        println!("Drag data get called");
         if let Some(text) = self.boxes[index].get_tooltip_text() {
-            println!("Text is {}", &text);
             // added seems to be false with the following, so set a field in the card view with the
             // text instead
             /*

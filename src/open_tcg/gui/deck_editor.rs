@@ -35,6 +35,7 @@ use self::gdk::{Screen, EventButton, DragContext};
 
 use open_tcg::game::tcg::TCG;
 use open_tcg::game::deck::Deck;
+use open_tcg::game::card::CardInfo;
 use super::card_display::CardDisplay;
 use super::card_search::CardSearch;
 use super::card_view::{CardView, CardViewType};
@@ -48,8 +49,6 @@ struct DragInfo {
 pub struct DeckEditor {
     window : Window,
     editor_box : GtkBox,
-    main_box : GtkBox,
-    add_to_box : FlowBox,
     card_display : CardDisplay,
     card_search : Rc<CardSearch>,
     // TODO: add controls here
@@ -88,8 +87,6 @@ impl DeckEditor {
             card_search : CardSearch::new(tcg.clone(), img_manager.clone()),
             current_tcg : tcg,
             editor_box : builder.get_object("editor_box").unwrap(),
-            main_box : builder.get_object("main_box").unwrap(),
-            add_to_box : builder.get_object("add_to_box").unwrap(),
             img_manager : img_manager,
             deck_view : Frame::new(Some("Deck")),
             section_views : Vec::new(),
@@ -98,31 +95,14 @@ impl DeckEditor {
             drag_info : RefCell::new(None)};
         
 
-        instance.init_add_to_buttons();
         instance.init_deck_views();
         instance.editor_box.pack_start(&instance.card_display.frame, false, false, 0);
-        instance.main_box.pack_end(&instance.deck_view, true, true, 0);
+        instance.editor_box.pack_start(&instance.deck_view, true, true, 0);
         instance.editor_box.pack_end(&instance.card_search.frame, false, false, 0);
         instance.editor_box.reorder_child(&instance.card_display.frame, 0);
 
 
         instance
-    }
-
-    // TODO: set up architecture to allow data transfer from cardsearch to editor views
-
-    fn init_add_to_buttons(&mut self) {
-        let tcg_clone = self.current_tcg.clone();
-
-        let first_button = RadioButton::new_with_label(&[], &tcg_clone.sections[0].name);
-        self.add_to_box.add(&first_button);
-
-        for i in 1..tcg_clone.sections.len() {
-            let next_button = RadioButton::new_with_label_from_widget(Some(&first_button), &tcg_clone.sections[i].name);
-            self.add_to_box.add(&next_button);
-            self.section_buttons.push(next_button);
-        }
-        self.section_buttons.insert(0, first_button);
     }
 
     fn init_deck_views(&mut self) {
@@ -163,36 +143,45 @@ impl DeckEditor {
         }
     }
 
-    /// Attempts to add the given card to the currently selected deck section
-    fn add_card(&self, name : &String) {
-        // TODO: check if the card can be added to the selected section
-        let mut selected_index = 0;
-        if let Some(card_info) = self.current_tcg.cards.get(name) {
-            for i in 0..self.section_buttons.len() {
-                if self.section_buttons[i].get_active() {
-                    selected_index = i;
-                    break;
-                }
-            }
-            self.section_views[selected_index].add_card(&card_info);
-        }
-    }
-
-    fn on_card_search_drag_data_get(&self, view : &CardView, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
+    fn on_card_view_drag_data_get(&self, view : &CardView, context : &DragContext, data : &SelectionData, info : u32, time : u32) {
         if let Some(text) = view.get_dragged_text() {
-            println!("Text is {}", text);
             *self.drag_info.borrow_mut() = Some(DragInfo{source_type : view.get_view_type(),
                 source_data : text.clone()});
         }
     }
 
-    fn on_deck_view_drag_drop(&self, view : &CardView, context : &DragContext, x : i32, y : i32, time : u32) {
+    fn on_deck_view_drag_drop(&self, index : usize, view : &CardView, context : &DragContext, x : i32, y : i32, time : u32) {
         if let Some(ref info) = *self.drag_info.borrow() {
             if let CardViewType::SearchView = info.source_type {
-                println!("Source is from the search field.");
-                println!("Source text = {}", &info.source_data);
                 if let Some(card_info) = self.current_tcg.cards.get(&info.source_data) {
-                    view.add_card(&card_info);
+                    self.add_card_to_section(index, view, card_info);
+                }
+            }
+        }
+    }
+
+    fn add_card_to_section(&self, index : usize, view : &CardView, info : &CardInfo) {
+        let mut section_cards = self.current_deck.sections[index].cards.borrow_mut();
+        if section_cards.contains_key(&info.name) {
+            let entry = section_cards.get_mut(&info.name);
+            if let Some(copies) = entry {
+                if *copies < self.current_tcg.card_limit {
+                    *copies += 1;
+                    view.add_card(&info);
+                }
+            }
+        } else {
+            section_cards.insert(info.name.clone(), 1);
+            view.add_card(&info);
+        }
+    }
+
+    fn on_card_search_drag_drop(&self, view : &CardView, context : &DragContext, x : i32, y : i32, time : u32) {
+        if let Some(ref info) = *self.drag_info.borrow() {
+            if let CardViewType::EditorView = info.source_type {
+                if let Some(card_info) = self.current_tcg.cards.get(&info.source_data) {
+                    // TODO: remove card 
+                    println!("Card will be removed");
                 }
             }
         }
@@ -208,7 +197,13 @@ impl DeckEditor {
         {
             let instance_copy = instance.clone();
             instance.card_search.connect_card_drag_data_get(move |view, context, data, info, time| {
-                instance_copy.on_card_search_drag_data_get(view, context, data, info, time);
+                instance_copy.on_card_view_drag_data_get(view, context, data, info, time);
+            });
+        }
+        {
+            let instance_copy = instance.clone();
+            instance.card_search.connect_view_drag_drop(move |view, context, x, y, time| {
+                instance_copy.on_card_search_drag_drop(view, context, x, y, time); 
             });
         }
         /*
@@ -222,10 +217,18 @@ impl DeckEditor {
         }
         */
         for i in 0..instance.section_views.len() {
-            let instance_copy = instance.clone();
-            instance.section_views[i].connect_view_drag_drop(move |view, context, x, y, time| {
-                instance_copy.on_deck_view_drag_drop(view, context, x, y, time);
-            });
+            {
+                let instance_copy = instance.clone();
+                instance.section_views[i].connect_card_drag_data_get(move |view, context, data, info, time| {
+                    instance_copy.on_card_view_drag_data_get(view, context, data, info, time);
+                });
+            }
+            {
+                let instance_copy = instance.clone();
+                instance.section_views[i].connect_view_drag_drop(move |view, context, x, y, time| {
+                    instance_copy.on_deck_view_drag_drop(i, view, context, x, y, time);
+                });
+            }
         }
     }
 

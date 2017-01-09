@@ -22,6 +22,8 @@
 
 extern crate sxd_document;
 
+use std::cell::RefCell;
+
 use super::card::CardInfo;
 use std::collections::HashMap;
 use std::fs::File;
@@ -62,12 +64,12 @@ pub struct DeckSection {
     pub info : DeckSectionInfo,
 
     /// Defines a map from card name to number of copies in this section
-    pub cards : HashMap<String, u32>
+    pub cards : RefCell<HashMap<String, u32>>
 }
 
 impl DeckSection {
     pub fn new() -> DeckSection {
-        DeckSection { info : DeckSectionInfo::new(), cards : HashMap::new() }
+        DeckSection { info : DeckSectionInfo::new(), cards : RefCell::new(HashMap::new()) }
     }
 
     pub fn new_from_file() -> DeckSection {
@@ -90,7 +92,7 @@ impl DeckSection {
         section.append_child(section_name);
 
         let section_cards = doc.create_element("Cards");
-        for (name, copies) in self.cards.iter() {
+        for (name, copies) in self.cards.borrow().iter() {
             let card = doc.create_element("Card");
             let card_name = doc.create_element("Name");
             let card_name_text = doc.create_text(&name);
