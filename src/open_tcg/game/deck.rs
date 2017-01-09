@@ -79,43 +79,53 @@ impl DeckSection {
 
         result
     }
-
-    pub fn write_to_file(&self, filename : &PathBuf) {
-        let package = Package::new();
-        let doc = package.as_document();
-
-        let section = doc.create_element("Section");
-
-        let section_name = doc.create_element("Name");
-        let section_name_text = doc.create_text(&self.info.name);
-        section_name.append_child(section_name_text);
-        section.append_child(section_name);
-
-        let section_cards = doc.create_element("Cards");
-        for (name, copies) in self.cards.borrow().iter() {
-            let card = doc.create_element("Card");
-            let card_name = doc.create_element("Name");
-            let card_name_text = doc.create_text(&name);
-            card_name.append_child(card_name_text);
-            card.append_child(card_name);
-
-            let card_copies = doc.create_element("NumCopies");
-            let card_copies_text = doc.create_text(&format!("{}", copies));
-            card_copies.append_child(card_copies_text);
-            card.append_child(card_copies);
-
-            section_cards.append_child(card);
-        }
-        section.append_child(section_cards);
-
-        doc.root().append_child(section);
-
-        let mut file = File::create(filename).expect("Error writing file");
-        format_document(&doc, &mut file).ok().expect("Error writing document");
-    }
 }
 
 pub struct Deck {
     pub sections : Vec<DeckSection>,
     pub name : String
+}
+
+impl Deck {
+    pub fn new() -> Deck {
+        Deck{sections : Vec::new(), name : String::new()}
+    }
+
+    pub fn write_to_file(&self, filename : &PathBuf) {
+        let package = Package::new();
+        let doc = package.as_document();
+
+        let sections = doc.create_element("Sections");
+
+        for deck_section in self.sections.iter() {
+            let section = doc.create_element("Section");
+
+            let section_name = doc.create_element("Name");
+            let section_name_text = doc.create_text(&deck_section.info.name);
+            section_name.append_child(section_name_text);
+            section.append_child(section_name);
+
+            let section_cards = doc.create_element("Cards");
+            for (name, copies) in deck_section.cards.borrow().iter() {
+                let card = doc.create_element("Card");
+                let card_name = doc.create_element("Name");
+                let card_name_text = doc.create_text(&name);
+                card_name.append_child(card_name_text);
+                card.append_child(card_name);
+
+                let card_copies = doc.create_element("NumCopies");
+                let card_copies_text = doc.create_text(&format!("{}", copies));
+                card_copies.append_child(card_copies_text);
+                card.append_child(card_copies);
+
+                section_cards.append_child(card);
+            }
+            section.append_child(section_cards);
+            sections.append_child(section);
+        }
+        doc.root().append_child(sections);
+        let mut file = File::create(filename).expect("Error writing file");
+        format_document(&doc, &mut file).ok().expect("Error writing document");
+ 
+    }
 }

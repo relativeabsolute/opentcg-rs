@@ -23,12 +23,13 @@
 extern crate gtk;
 extern crate gdk;
 
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::cell::RefCell;
 
 use gtk::prelude::*;
-use gtk::{Window, WindowPosition,
-    Builder, Orientation, Frame, FlowBox, RadioButton, SelectionData};
+use gtk::{Window, WindowPosition, FileChooserDialog, FileChooserAction,
+    Builder, Orientation, Frame, FlowBox, Button, SelectionData, ResponseType};
 use gtk::Box as GtkBox;
 
 use self::gdk::{Screen, EventButton, DragContext};
@@ -47,17 +48,28 @@ struct DragInfo {
 }
 
 pub struct DeckEditor {
+    // layout related things
     window : Window,
     editor_box : GtkBox,
+    display_box : GtkBox,
+    deck_view : Frame,
+
+    // custom subcontrols
     card_display : CardDisplay,
     card_search : Rc<CardSearch>,
-    // TODO: add controls here
+    section_views : Vec<Rc<CardView>>,
+
+    // fields related to data storage
     current_tcg : Rc<TCG>,
     img_manager : Rc<ImageManager>,
-    deck_view : Frame,
-    section_views : Vec<Rc<CardView>>,
-    section_buttons : Vec<RadioButton>,
     current_deck : Deck,
+    deck_filename : String,
+
+    // controls at the bottom left used for navigation and open/save
+    save_button : Button,
+    save_as_button : Button,
+
+    // temporary substitute for handling drag n drop purely with GTK
     drag_info : RefCell<Option<DragInfo>>
 }
 
@@ -82,25 +94,36 @@ impl DeckEditor {
 
         let img_manager = Rc::new(ImageManager::new());
         let tcg_clone = tcg.clone();
-        let mut instance = DeckEditor{window : builder.get_object("window").unwrap(),
+        let mut instance = DeckEditor{
+            // layout stuff
+            window : builder.get_object("window").unwrap(),
+            editor_box : builder.get_object("editor_box").unwrap(),
+            display_box : builder.get_object("display_box").unwrap(),
+            deck_view : Frame::new(Some("Deck")),
+
+            // custom subcontrols
             card_display : CardDisplay::new(tcg.clone(), img_manager.clone()), 
             card_search : CardSearch::new(tcg.clone(), img_manager.clone()),
-            current_tcg : tcg,
-            editor_box : builder.get_object("editor_box").unwrap(),
-            img_manager : img_manager,
-            deck_view : Frame::new(Some("Deck")),
             section_views : Vec::new(),
-            section_buttons : Vec::new(),
+
+            // fields related to data storage
+            current_tcg : tcg,
+            img_manager : img_manager,
             current_deck : tcg_clone.new_deck(),
+            deck_filename : String::new(),
+
+            // controls at the bottom left used for navigation and open/save
+            save_button : builder.get_object("save_button").unwrap(),
+            save_as_button : builder.get_object("save_as_button").unwrap(),
+
+            // temporary substitute for handling drag n drop purely with GTK
             drag_info : RefCell::new(None)};
         
 
         instance.init_deck_views();
-        instance.editor_box.pack_start(&instance.card_display.frame, false, false, 0);
+        instance.display_box.pack_start(&instance.card_display.frame, true, true, 0);
         instance.editor_box.pack_start(&instance.deck_view, true, true, 0);
         instance.editor_box.pack_end(&instance.card_search.frame, false, false, 0);
-        instance.editor_box.reorder_child(&instance.card_display.frame, 0);
-
 
         instance
     }
@@ -187,7 +210,62 @@ impl DeckEditor {
         }
     }
 
-    fn connect_events(instance : Rc<DeckEditor>) {
+    fn save_as(&self) {
+        let file_dialog = FileChooserDialog::new(Some("Choose a File"), Some(&self.window), FileChooserAction::Save);
+
+        file_dialog.add_buttons(&[
+                                ("Save", ResponseType::Ok.into()),
+                                ("Cancel", ResponseType::Cancel.into())
+        ]);
+
+        file_dialog.run();
+        if let Some(file) = file_dialog.get_filename() {
+            self.set_deck_path(&file);
+            self.save(&file);
+        }
+        file_dialog.destroy();
+    }
+
+    fn set_deck_path(&self, path : &PathBuf) {
+        // TODO: set window title and entry in deck drop down
+    }
+
+    /// Perform file write operation with the current deck.
+    fn save(&self, path : &PathBuf) {
+        self.current_deck.write_to_file(path);
+    }
+
+    fn on_save_button_clicked(&self) {
+        // TODO: save the current deck
+        if self.deck_filename.is_empty() {
+
+        }
+    }
+
+    fn on_save_as_button_clicked(&self) {
+        // TODO: save the current deck
+        self.save_as();
+    }
+
+    /// Handle events related to the navigation and open/save controls
+    /// at the bottom left.
+    fn connect_navigation_events(instance : Rc<DeckEditor>) {
+        {
+            let instance_copy = instance.clone();
+            instance.save_button.connect_clicked(move |_| {
+                instance_copy.on_save_button_clicked();
+            });
+        }
+        {
+            let instance_copy = instance.clone();
+            instance.save_as_button.connect_clicked(move |_| {
+                instance_copy.on_save_as_button_clicked();
+            });
+        }
+    }
+
+    /// Handle drag and drop and mouse hover events for the various card views.
+    fn connect_mouse_events(instance : Rc<DeckEditor>) {
         {
             let instance_copy = instance.clone();
             instance.card_search.connect_card_hover(move |_, name, _| {
@@ -206,16 +284,6 @@ impl DeckEditor {
                 instance_copy.on_card_search_drag_drop(view, context, x, y, time); 
             });
         }
-        /*
-        {
-            let instance_copy = instance.clone();
-            // TODO: check type of the eventbutton to ensure only card can be added
-            // maybe on double click?
-            instance.card_search.connect_card_clicked(move |_, name, _| {
-                instance_copy.add_card(name);
-            });
-        }
-        */
         for i in 0..instance.section_views.len() {
             {
                 let instance_copy = instance.clone();
@@ -230,7 +298,13 @@ impl DeckEditor {
                 });
             }
         }
+ 
     }
+
+    fn connect_events(instance : Rc<DeckEditor>) {
+       DeckEditor::connect_navigation_events(instance.clone());
+       DeckEditor::connect_mouse_events(instance.clone());
+   }
 
     fn on_section_view_clicked(&self, widget : &CardView, name : &String, evt : &EventButton) {
         if evt.as_ref().button == 3 {
